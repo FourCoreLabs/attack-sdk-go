@@ -94,16 +94,21 @@ type HTTPAPI struct {
 }
 
 // NewHTTPAPI creates a new API client with default rate limit of 100 reqs/min
-func NewHTTPAPI(baseURL, apiKey string) (*HTTPAPI, error) {
+func NewHTTPAPI(baseURL, apiKey string, client ...*http.Client) (*HTTPAPI, error) {
 	parsedURL, err := url.Parse(baseURL)
 	if err != nil {
 		return nil, err
 	}
 
+	httpClient := &http.Client{Timeout: 60 * time.Second}
+	if len(client) > 0 {
+		httpClient = client[0]
+	}
+
 	return &HTTPAPI{
 		BaseURL:     baseURL,
 		baseURL:     parsedURL,
-		client:      &http.Client{Timeout: 60 * time.Second},
+		client:      httpClient,
 		APIKey:      apiKey,
 		rateLimiter: NewRateLimiter(100), // Default rate limit: 100 requests per minute
 	}, nil
