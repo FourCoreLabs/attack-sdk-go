@@ -9,75 +9,79 @@ import (
 	"net/http"
 	"net/url"
 	"strconv"
-	"sync"
 	"time"
 
 	"encoding/json"
+
+	"golang.org/x/time/rate"
 )
 
-// RateLimiter implements a local rate limiting mechanism
+// RateLimiter wraps the golang.org/x/time/rate Limiter
 type RateLimiter struct {
-	mu            sync.Mutex
-	requests      []time.Time
-	limit         int           // Default rate limit per minute
-	windowMinutes time.Duration // Window duration in minutes
+	limiter *rate.Limiter // Token bucket rate limiter
+	limit   int           // Store original limit value
 }
 
 // NewRateLimiter creates a new rate limiter with default values
-func NewRateLimiter(limit int) *RateLimiter {
+func NewRateLimiter(requestsPerMinute int) *RateLimiter {
+	// Convert requests per minute to requests per second
+	rps := float64(requestsPerMinute) / 60.0
+	// Create a token bucket with capacity equal to the limit and refill rate of rps
+	limiter := rate.NewLimiter(rate.Limit(rps), requestsPerMinute)
+
 	return &RateLimiter{
-		requests:      make([]time.Time, 0, limit),
-		limit:         limit,
-		windowMinutes: 1, // Default window of 1 minute
+		limiter: limiter,
+		limit:   requestsPerMinute,
 	}
 }
 
-// IsAllowed checks if a request is allowed based on rate limits
+// IsAllowed checks if a request is allowed based on rate limits without blocking
+// Returns true if allowed, false if rate limited, and duration to wait if limited
 func (r *RateLimiter) IsAllowed() (bool, time.Duration) {
-	r.mu.Lock()
-	defer r.mu.Unlock()
-
-	now := time.Now()
-	windowStart := now.Add(-time.Minute * r.windowMinutes)
-
-	// Cleanup old requests
-	validRequests := make([]time.Time, 0, len(r.requests))
-	for _, t := range r.requests {
-		if t.After(windowStart) {
-			validRequests = append(validRequests, t)
-		}
-	}
-	r.requests = validRequests
-
-	// Check if we're at the limit
-	if len(r.requests) >= r.limit {
-		// Calculate time until oldest request expires
-		waitTime := r.requests[0].Add(time.Minute * r.windowMinutes).Sub(now)
-		return false, waitTime
+	// Use Reserve to get information about when a token would be available
+	reservation := r.limiter.Reserve()
+	if !reservation.OK() {
+		// This generally shouldn't happen with the standard token bucket,
+		// but we'll handle it anyway
+		reservation.Cancel()
+		return false, 0
 	}
 
-	// Add current request
-	r.requests = append(r.requests, now)
-	return true, 0
+	// Check if we need to wait
+	delay := reservation.Delay()
+	if delay == 0 {
+		// No need to wait, token available immediately
+		return true, 0
+	}
+
+	// We'd need to wait - cancel the reservation since we're not actually consuming yet
+	// and return the wait time
+	reservation.Cancel()
+	return false, delay
 }
 
-// RemainingRequests returns the number of remaining requests in the current window
-func (r *RateLimiter) RemainingRequests() int {
-	r.mu.Lock()
-	defer r.mu.Unlock()
+// Allow checks if a request is allowed based on rate limits and consumes a token if available
+func (r *RateLimiter) Allow() bool {
+	return r.limiter.Allow()
+}
 
-	now := time.Now()
-	windowStart := now.Add(-time.Minute * r.windowMinutes)
+// Wait blocks until a request can be allowed or the context is done
+func (r *RateLimiter) Wait(ctx context.Context) error {
+	return r.limiter.Wait(ctx)
+}
 
-	// Count valid requests
-	validCount := 0
-	for _, t := range r.requests {
-		if t.After(windowStart) {
-			validCount++
-		}
-	}
+// WaitMaxDuration tries to wait for a token but only up to the specified max duration
+func (r *RateLimiter) WaitMaxDuration(ctx context.Context, maxWait time.Duration) error {
+	// Create a new context with timeout
+	ctx, cancel := context.WithTimeout(ctx, maxWait)
+	defer cancel()
 
-	return r.limit - validCount
+	return r.limiter.Wait(ctx)
+}
+
+// RemainingTokens returns an estimate of the number of remaining requests
+func (r *RateLimiter) RemainingTokens() float64 {
+	return r.limiter.Tokens()
 }
 
 // HTTPAPI represents an HTTP API client
@@ -103,6 +107,11 @@ func NewHTTPAPI(baseURL, apiKey string) (*HTTPAPI, error) {
 		APIKey:      apiKey,
 		rateLimiter: NewRateLimiter(100), // Default rate limit: 100 requests per minute
 	}, nil
+}
+
+// SetRateLimit updates the rate limiter with a new limit
+func (g *HTTPAPI) SetRateLimit(requestsPerMinute int) {
+	g.rateLimiter = NewRateLimiter(requestsPerMinute)
 }
 
 var (
@@ -187,15 +196,34 @@ func parseRateLimitHeaders(headers http.Header) RateInfo {
 }
 
 func (g *HTTPAPI) reqBase(base *url.URL, method string, uri string, postBody []byte, isJSON bool, options ...ReqOptions) ([]byte, int, string, error) {
-	// Check local rate limiter before making request
+	// We can use either IsAllowed or Wait depending on whether we want to block or return immediately
+	// Let's implement both approaches with priority to IsAllowed for quick checks
+
+	// First check if we can make the request without waiting
 	allowed, waitTime := g.rateLimiter.IsAllowed()
 	if !allowed {
-		// Wait for the retry period or return error
-		select {
-		case <-context.Background().Done():
-			return nil, 0, "", context.Background().Err()
-		case <-time.After(waitTime):
-			// Continue after waiting
+		// If wait time is reasonable (less than 5 seconds), we can wait
+		if waitTime <= 5*time.Second {
+			select {
+			case <-time.After(waitTime):
+				// Continue after waiting the short duration
+			case <-context.Background().Done():
+				return nil, 0, "", context.Background().Err()
+			}
+		} else {
+			// Wait time is too long, let's use the Wait method with a max timeout
+			ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+			defer cancel()
+
+			// Try to wait for a token, but only up to our limit
+			if err := g.rateLimiter.WaitMaxDuration(ctx, 5*time.Second); err != nil {
+				// If we couldn't get a token in time, return a rate limit error
+				if errors.Is(err, context.DeadlineExceeded) {
+					return nil, 0, "", fmt.Errorf("%w: retry after %.1f seconds",
+						ErrRateLimited, waitTime.Seconds())
+				}
+				return nil, 0, "", err
+			}
 		}
 	}
 
@@ -231,14 +259,20 @@ func (g *HTTPAPI) reqBase(base *url.URL, method string, uri string, postBody []b
 	}
 	defer response.Body.Close()
 
-	// Parse rate limit headers from response and update limiter if needed
+	// Parse rate limit headers from response
 	rateInfo := parseRateLimitHeaders(response.Header)
 
 	// If we received a rate limit response, update our local limiter if needed
-	if response.StatusCode == http.StatusTooManyRequests && rateInfo.RetryAfter > 0 {
-		// Create a new rate limiter with adjusted limits if needed
+	if response.StatusCode == http.StatusTooManyRequests {
+		// Update rate limiter if we get new limit information
 		if rateInfo.Limit > 0 && rateInfo.Limit != g.rateLimiter.limit {
-			g.rateLimiter = NewRateLimiter(rateInfo.Limit)
+			g.SetRateLimit(rateInfo.Limit)
+		}
+
+		// If there's a retry-after header, return appropriate error
+		if rateInfo.RetryAfter > 0 {
+			return nil, response.StatusCode, response.Header.Get("Content-Type"),
+				fmt.Errorf("%w: retry after %d seconds", ErrRateLimited, rateInfo.RetryAfter)
 		}
 
 		return nil, response.StatusCode, response.Header.Get("Content-Type"), ErrRateLimited
