@@ -11,6 +11,9 @@ import (
 // AssetsV2URI is the base endpoint for the assets API
 const AssetsV2URI = "/api/v2/assets"
 
+// EmailAssetsV2URI is the base endpoint for the email assets API
+const EmailAssetsV2URI = "/api/v2/assets/email"
+
 // GetAssets retrieves all assets from the API
 func GetAssets(h *api.HTTPAPI) ([]asset.Asset, error) {
 	var assets []asset.Asset
@@ -149,4 +152,87 @@ func GetAssetPacks(h *api.HTTPAPI, assetID string, opts GetAssetExecutionsOpts) 
 
 	_, err := h.GetJSON(endpoint, &packs, api.ReqOptions{Params: params})
 	return packs, err
+}
+
+// GetEmailAssets retrieves all email assets from the API
+func GetEmailAssets(h *api.HTTPAPI) ([]asset.EmailAsset, error) {
+	var assets []asset.EmailAsset
+
+	_, err := h.GetJSON(EmailAssetsV2URI, &assets)
+	return assets, err
+}
+
+// GetEmailAsset retrieves a specific email asset by ID
+func GetEmailAsset(h *api.HTTPAPI, assetID string) (asset.EmailAsset, error) {
+	var assetData asset.EmailAsset
+
+	_, err := h.GetJSON(fmt.Sprintf("%s/%s", EmailAssetsV2URI, assetID), &assetData)
+	return assetData, err
+}
+
+// CreateEmailAsset creates a new email asset
+func CreateEmailAsset(h *api.HTTPAPI, email string, tags map[string]string) (asset.EmailAsset, error) {
+	var assetData asset.EmailAsset
+
+	reqBody := asset.CreateEmailAssetRequest{
+		Email: email,
+		Tags:  tags,
+	}
+
+	_, err := h.PostJSON(EmailAssetsV2URI, reqBody, &assetData)
+	return assetData, err
+}
+
+// UpdateEmailAsset updates an existing email asset
+func UpdateEmailAsset(h *api.HTTPAPI, assetID string, email string, tags map[string]string) (models.SuccessIDResponse, error) {
+	var response models.SuccessIDResponse
+
+	endpoint := fmt.Sprintf("%s/%s", EmailAssetsV2URI, assetID)
+	reqBody := asset.CreateEmailAssetRequest{
+		Email: email,
+		Tags:  tags,
+	}
+
+	_, err := h.PutJSON(endpoint, reqBody, &response)
+	return response, err
+}
+
+// DeleteEmailAsset deletes an email asset by ID
+func DeleteEmailAsset(h *api.HTTPAPI, assetID string) (models.SuccessIDResponse, error) {
+	var response models.SuccessIDResponse
+
+	endpoint := fmt.Sprintf("%s/%s", EmailAssetsV2URI, assetID)
+	_, err := h.DeleteJSON(endpoint, nil, &response)
+	return response, err
+}
+
+// VerifyEmailAsset sends a verification email for an email asset
+func VerifyEmailAsset(h *api.HTTPAPI, assetID string) (models.SuccessIDResponse, error) {
+	var response models.SuccessIDResponse
+
+	endpoint := fmt.Sprintf("%s/%s/verify", EmailAssetsV2URI, assetID)
+	_, err := h.PostJSON(endpoint, nil, &response)
+	return response, err
+}
+
+// GetEmailAssetAnalytics retrieves analytics data for an email asset
+func GetEmailAssetAnalytics(h *api.HTTPAPI, assetID string, days int) (asset.EmailAssetAnalytics, error) {
+	var analytics asset.EmailAssetAnalytics
+
+	endpoint := fmt.Sprintf("%s/%s/analytics", EmailAssetsV2URI, assetID)
+	_, err := h.GetJSON(endpoint, &analytics, api.ReqOptions{
+		Params: map[string]string{
+			"d": fmt.Sprintf("%d", days),
+		},
+	})
+	return analytics, err
+}
+
+// GetGmailConfirmationCode retrieves the Gmail confirmation code for an email asset
+func GetGmailConfirmationCode(h *api.HTTPAPI, assetID string) (asset.GmailConfCode, error) {
+	var confCode asset.GmailConfCode
+
+	endpoint := fmt.Sprintf("%s/%s/gmail/confirmation", EmailAssetsV2URI, assetID)
+	_, err := h.GetJSON(endpoint, &confCode)
+	return confCode, err
 }

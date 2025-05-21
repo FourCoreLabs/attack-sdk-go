@@ -139,3 +139,44 @@ type IntegrationTypeCount struct {
 	IntegrationType string `json:"integration_type"`
 	Count           int    `json:"count"`
 }
+
+// EmailAsset represents an email asset in the FourCore platform
+type EmailAsset struct {
+	ID        string            `json:"id"`
+	OrgID     uint              `json:"org_id"`
+	UserID    uint              `json:"user_id"`
+	Email     string            `json:"email"`
+	Available bool              `json:"available"`
+	Disabled  bool              `json:"disabled"`
+	Verified  bool              `json:"verified"`
+	CreatedAt *time.Time        `json:"created_at,omitempty"`
+	UpdatedAt *time.Time        `json:"updated_at,omitempty"`
+	DeletedAt *time.Time        `json:"deleted_at,omitempty"`
+	Tags      map[string]string `json:"tags"`
+}
+
+// CreateEmailAssetRequest represents the request body for creating or updating an email asset
+type CreateEmailAssetRequest struct {
+	Email string            `json:"email"`
+	Tags  map[string]string `json:"tags"`
+}
+
+// EmailAssetAnalytics represents analytics data for an email asset
+type EmailAssetAnalytics struct {
+	Total         int            `json:"total"`
+	Success       int            `json:"success"`
+	Detected      int            `json:"detected"`
+	ActionSuccess map[string]int `json:"action_success"`
+	ExtSuccess    map[string]int `json:"ext_success"`
+	MimeSuccess   map[string]int `json:"mime_success"`
+}
+
+// GmailConfCode represents the Gmail confirmation code for email asset verification
+type GmailConfCode struct {
+	EmailAssetID string     `json:"email_asset_id"`
+	Code         string     `json:"code"`
+	Link         string     `json:"link"`
+	CreatedAt    *time.Time `json:"created_at,omitempty"`
+	UpdatedAt    *time.Time `json:"updated_at,omitempty"`
+	DeletedAt    *time.Time `json:"deleted_at,omitempty"`
+}
