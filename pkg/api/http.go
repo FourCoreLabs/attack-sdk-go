@@ -139,13 +139,10 @@ type APIError struct {
 	Errors []ErrorItem `json:"errors,omitempty" xml:"errors,omitempty"`
 }
 
-func (a *APIError) GetFirstError() ErrorItem {
-	if len(a.Errors) > 0 {
-		return a.Errors[0]
-	}
-
+func (a *APIError) GetError() ErrorItem {
 	return ErrorItem{
-		Name: "Unknown",
+		Name:   a.Title,
+		Reason: fmt.Sprintf("%v", a.Status),
 	}
 }
 
@@ -306,7 +303,7 @@ func (g *HTTPAPI) ReqBuf(method string, uri string, buf []byte, dest interface{}
 			return nil, err
 		}
 
-		apiErr := message.GetFirstError()
+		apiErr := message.GetError()
 
 		return nil, fmt.Errorf("%v: %v", apiErr.Name, apiErr.Reason)
 	case http.StatusNotFound:
@@ -314,7 +311,7 @@ func (g *HTTPAPI) ReqBuf(method string, uri string, buf []byte, dest interface{}
 		if err := json.Unmarshal(body, &message); err != nil {
 			return nil, ErrNotFound
 		}
-		apiErr := message.GetFirstError()
+		apiErr := message.GetError()
 
 		return nil, fmt.Errorf("%v: %v", apiErr.Name, apiErr.Reason)
 	case http.StatusUnauthorized:
@@ -322,7 +319,7 @@ func (g *HTTPAPI) ReqBuf(method string, uri string, buf []byte, dest interface{}
 		if err := json.Unmarshal(body, &message); err != nil {
 			return nil, ErrApiKeyInvalid
 		}
-		apiErr := message.GetFirstError()
+		apiErr := message.GetError()
 
 		return nil, fmt.Errorf("%v: %v", apiErr.Name, apiErr.Reason)
 	case http.StatusTooManyRequests:
@@ -330,7 +327,7 @@ func (g *HTTPAPI) ReqBuf(method string, uri string, buf []byte, dest interface{}
 		if err := json.Unmarshal(body, &message); err != nil {
 			return nil, ErrRateLimited
 		}
-		apiErr := message.GetFirstError()
+		apiErr := message.GetError()
 
 		return nil, fmt.Errorf("%v: %v", apiErr.Name, apiErr.Reason)
 	default:
@@ -339,7 +336,7 @@ func (g *HTTPAPI) ReqBuf(method string, uri string, buf []byte, dest interface{}
 			return nil, fmt.Errorf("%s: %v", ErrNotFound.Error(), errors.New("invalid response content"))
 		}
 
-		apiErr := message.GetFirstError()
+		apiErr := message.GetError()
 
 		return nil, fmt.Errorf("%v: %v", apiErr.Name, apiErr.Reason)
 	}
