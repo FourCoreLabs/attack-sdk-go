@@ -23,7 +23,7 @@ var rootCmd = &cobra.Command{
 	Version: "0.2.0", // Updated version maybe
 	Short:   "CLI for FourCore ATTACK REST API",
 	Long: `A command-line interface to interact with the FourCore ATTACK REST API,
-allowing management and retrieval of various resources like audit logs.`,
+allowing management and retrieval of various resources.`,
 	PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
 		// Load config from file first
 		loadedCfg, err := config.LoadConfig()
