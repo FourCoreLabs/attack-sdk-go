@@ -273,7 +273,7 @@ type Correlation struct {
 	DetectionTime            time.Time   `json:"detection_time,omitempty"`
 	ID                       string      `json:"id,omitempty"`
 	IntegrationEventUniqueID string      `json:"integration_event_unique_id,omitempty"`
-	IntegrationID            string      `json:"integration_id,omitempty"` // Assuming simple string for now
+	IntegrationID            any         `json:"integration_id,omitempty"` // Assuming simple string for now
 	IntegrationType          string      `json:"integration_type,omitempty"`
 	JobID                    string      `json:"job_id,omitempty"`
 	Name                     string      `json:"name,omitempty"`
@@ -400,4 +400,10 @@ type TemporaryObject struct {
 	Bucket string `json:"bucket,omitempty"`
 	Object string `json:"object,omitempty"`
 	Valid  bool   `json:"valid,omitempty"`
+}
+
+// ListWithCountExecutions represents a list response with count for executions
+type ListWithCountExecutions struct {
+	Count int                    `json:"count"`
+	Data  []GetExecutionResponse `json:"data"`
 }
