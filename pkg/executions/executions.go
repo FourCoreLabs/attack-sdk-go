@@ -1,6 +1,7 @@
 package executions
 
 import (
+	"context"
 	"fmt"
 	"strconv"
 	"strings"
@@ -30,7 +31,7 @@ type ExecutionOpts struct {
 }
 
 // GetExecutions retrieves executions from the API with the given options
-func GetExecutions(h *api.HTTPAPI, opts ExecutionOpts) (models.ListWithCountExecutions, error) {
+func GetExecutions(ctx context.Context, h *api.HTTPAPI, opts ExecutionOpts) (models.ListWithCountExecutions, error) {
 	var resp models.ListWithCountExecutions
 
 	// Prepare parameters map
@@ -79,7 +80,7 @@ func GetExecutions(h *api.HTTPAPI, opts ExecutionOpts) (models.ListWithCountExec
 	}
 
 	// Make the API request
-	_, err := h.GetJSON(ExecutionsV2URI, &resp, api.ReqOptions{
+	_, err := h.GetJSON(ctx, ExecutionsV2URI, &resp, api.ReqOptions{
 		Params: params,
 	})
 
@@ -87,21 +88,21 @@ func GetExecutions(h *api.HTTPAPI, opts ExecutionOpts) (models.ListWithCountExec
 }
 
 // GetExecutionReport retrieves a detailed execution report by ID
-func GetExecutionReport(h *api.HTTPAPI, executionID string) (models.GetExecutionResponse, error) {
+func GetExecutionReport(ctx context.Context, h *api.HTTPAPI, executionID string) (models.GetExecutionResponse, error) {
 	var resp models.GetExecutionResponse
 
 	endpoint := fmt.Sprintf("%s/%s/report", ExecutionsV2URI, executionID)
-	_, err := h.GetJSON(endpoint, &resp)
+	_, err := h.GetJSON(ctx, endpoint, &resp)
 
 	return resp, err
 }
 
 // DeleteExecution deletes an execution by ID
-func DeleteExecution(h *api.HTTPAPI, executionID string) (models.SuccessIDResponse, error) {
+func DeleteExecution(ctx context.Context, h *api.HTTPAPI, executionID string) (models.SuccessIDResponse, error) {
 	var resp models.SuccessIDResponse
 
 	endpoint := fmt.Sprintf("%s/%s", ExecutionsV2URI, executionID)
-	_, err := h.DeleteJSON(endpoint, nil, &resp)
+	_, err := h.DeleteJSON(ctx, endpoint, nil, &resp)
 
 	return resp, err
 }

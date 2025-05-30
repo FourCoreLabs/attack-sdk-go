@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -85,7 +86,7 @@ var executionsListCmd = &cobra.Command{
 		}
 
 		// --- API Call ---
-		executions, err := pkgExecutions.GetExecutions(client, opts)
+		executions, err := pkgExecutions.GetExecutions(context.Background(), client, opts)
 		if err != nil {
 			// Check for specific API errors
 			if errors.Is(err, api.ErrApiKeyInvalid) {
@@ -137,7 +138,7 @@ var executionsGetCmd = &cobra.Command{
 		format, _ := cmd.Flags().GetString("format")
 
 		// --- API Call ---
-		execution, err := pkgExecutions.GetExecutionReport(client, executionID)
+		execution, err := pkgExecutions.GetExecutionReport(context.Background(), client, executionID)
 		if err != nil {
 			// Check for specific API errors
 			if errors.Is(err, api.ErrApiKeyInvalid) {
@@ -196,7 +197,7 @@ var executionsDeleteCmd = &cobra.Command{
 		}
 
 		// --- API Call ---
-		response, err := pkgExecutions.DeleteExecution(client, executionID)
+		response, err := pkgExecutions.DeleteExecution(context.Background(), client, executionID)
 		if err != nil {
 			// Check for specific API errors
 			if errors.Is(err, api.ErrApiKeyInvalid) {

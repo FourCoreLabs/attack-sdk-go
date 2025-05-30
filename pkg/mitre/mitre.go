@@ -1,6 +1,7 @@
 package mitre
 
 import (
+	"context"
 	"fmt"
 
 	"github.com/fourcorelabs/attack-sdk-go/pkg/api"
@@ -11,7 +12,7 @@ import (
 const MitreV2URI = "/api/v2/mitre"
 
 // GetAllMitreCoverage retrieves complete MITRE ATT&CK coverage information for the user
-func GetAllMitreCoverage(h *api.HTTPAPI, days int) ([]mitre.MitreTacticTechniqueWithActionAndStagers, error) {
+func GetAllMitreCoverage(ctx context.Context, h *api.HTTPAPI, days int) ([]mitre.MitreTacticTechniqueWithActionAndStagers, error) {
 	var resp []mitre.MitreTacticTechniqueWithActionAndStagers
 
 	endpoint := fmt.Sprintf("%s/all", MitreV2URI)
@@ -19,7 +20,7 @@ func GetAllMitreCoverage(h *api.HTTPAPI, days int) ([]mitre.MitreTacticTechnique
 		"d": fmt.Sprintf("%d", days),
 	}
 
-	_, err := h.GetJSON(endpoint, &resp, api.ReqOptions{
+	_, err := h.GetJSON(ctx, endpoint, &resp, api.ReqOptions{
 		Params: params,
 	})
 
@@ -27,7 +28,7 @@ func GetAllMitreCoverage(h *api.HTTPAPI, days int) ([]mitre.MitreTacticTechnique
 }
 
 // GetMitreTechnique retrieves MITRE ATT&CK technique information based on technique_id
-func GetMitreTechnique(h *api.HTTPAPI, techniqueID string, days int) (mitre.MitreTacticTechniqueWithActionAndStagers, error) {
+func GetMitreTechnique(ctx context.Context, h *api.HTTPAPI, techniqueID string, days int) (mitre.MitreTacticTechniqueWithActionAndStagers, error) {
 	var resp mitre.MitreTacticTechniqueWithActionAndStagers
 
 	endpoint := fmt.Sprintf("%s/%s", MitreV2URI, techniqueID)
@@ -35,7 +36,7 @@ func GetMitreTechnique(h *api.HTTPAPI, techniqueID string, days int) (mitre.Mitr
 		"d": fmt.Sprintf("%d", days),
 	}
 
-	_, err := h.GetJSON(endpoint, &resp, api.ReqOptions{
+	_, err := h.GetJSON(ctx, endpoint, &resp, api.ReqOptions{
 		Params: params,
 	})
 

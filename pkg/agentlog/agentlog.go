@@ -1,6 +1,7 @@
 package agentlog
 
 import (
+	"context"
 	"strconv"
 	"strings"
 	"time"
@@ -26,7 +27,7 @@ type AgentLogOpts struct {
 }
 
 // GetAgentLogs retrieves agent logs from the API with the given options
-func GetAgentLogs(h *api.HTTPAPI, opts AgentLogOpts) (models.PaginationResponse[agentlog.AgentLog], error) {
+func GetAgentLogs(ctx context.Context, h *api.HTTPAPI, opts AgentLogOpts) (models.PaginationResponse[agentlog.AgentLog], error) {
 	var resp models.PaginationResponse[agentlog.AgentLog]
 
 	// Prepare parameters map
@@ -59,7 +60,7 @@ func GetAgentLogs(h *api.HTTPAPI, opts AgentLogOpts) (models.PaginationResponse[
 	}
 
 	// Make the API request
-	_, err := h.GetJSON(AgentLogV2URI, &resp, api.ReqOptions{
+	_, err := h.GetJSON(ctx, AgentLogV2URI, &resp, api.ReqOptions{
 		Params: params,
 	})
 

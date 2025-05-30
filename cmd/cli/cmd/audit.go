@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -55,7 +56,7 @@ var auditListCmd = &cobra.Command{
 		}
 
 		// --- API Call ---
-		logs, err := pkgAuditLog.GetAuditLogs(client, opts)
+		logs, err := pkgAuditLog.GetAuditLogs(context.Background(), client, opts)
 		if err != nil {
 			// Check for specific API errors if needed
 			if errors.Is(err, api.ErrApiKeyInvalid) {

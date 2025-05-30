@@ -1,6 +1,7 @@
 package wafchains
 
 import (
+	"context"
 	"fmt"
 
 	"github.com/fourcorelabs/attack-sdk-go/pkg/api"
@@ -11,11 +12,11 @@ import (
 const WAFChainsV2URI = "/api/v2/waf/chain"
 
 // ExecuteWAFChain executes a WAF attack chain by chain ID on specified assets
-func ExecuteWAFChain(h *api.HTTPAPI, chainID string, attackRun models.AttackRun) (models.GetExecutionResponse, error) {
+func ExecuteWAFChain(ctx context.Context, h *api.HTTPAPI, chainID string, attackRun models.AttackRun) (models.GetExecutionResponse, error) {
 	var response models.GetExecutionResponse
 
 	endpoint := fmt.Sprintf("%s/%s/run", WAFChainsV2URI, chainID)
-	_, err := h.PostJSON(endpoint, attackRun, &response)
+	_, err := h.PostJSON(ctx, endpoint, attackRun, &response)
 	if err != nil {
 		return models.GetExecutionResponse{}, fmt.Errorf("failed to execute WAF chain: %w", err)
 	}

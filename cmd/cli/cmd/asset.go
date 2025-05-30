@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -44,7 +45,7 @@ var assetListCmd = &cobra.Command{
 		format, _ := cmd.Flags().GetString("format")
 
 		// --- API Call ---
-		assets, err := pkgAsset.GetAssets(client)
+		assets, err := pkgAsset.GetAssets(context.Background(), client)
 		if err != nil {
 			// Check for specific API errors
 			if errors.Is(err, api.ErrApiKeyInvalid) {
@@ -96,7 +97,7 @@ var assetGetCmd = &cobra.Command{
 		format, _ := cmd.Flags().GetString("format")
 
 		// --- API Call ---
-		asset, err := pkgAsset.GetAsset(client, assetID)
+		asset, err := pkgAsset.GetAsset(context.Background(), client, assetID)
 		if err != nil {
 			// Check for specific API errors
 			if errors.Is(err, api.ErrApiKeyInvalid) {
@@ -143,7 +144,7 @@ var assetEnableCmd = &cobra.Command{
 		}
 
 		// --- API Call ---
-		response, err := pkgAsset.EnableAsset(client, assetID)
+		response, err := pkgAsset.EnableAsset(context.Background(), client, assetID)
 		if err != nil {
 			// Check for specific API errors
 			if errors.Is(err, api.ErrApiKeyInvalid) {
@@ -189,7 +190,7 @@ var assetDisableCmd = &cobra.Command{
 		}
 
 		// --- API Call ---
-		response, err := pkgAsset.DisableAsset(client, assetID)
+		response, err := pkgAsset.DisableAsset(context.Background(), client, assetID)
 		if err != nil {
 			// Check for specific API errors
 			if errors.Is(err, api.ErrApiKeyInvalid) {
@@ -247,7 +248,7 @@ var assetDeleteCmd = &cobra.Command{
 		}
 
 		// --- API Call ---
-		response, err := pkgAsset.DeleteAsset(client, assetID)
+		response, err := pkgAsset.DeleteAsset(context.Background(), client, assetID)
 		if err != nil {
 			// Check for specific API errors
 			if errors.Is(err, api.ErrApiKeyInvalid) {
@@ -293,7 +294,7 @@ var assetTagsCmd = &cobra.Command{
 		}
 
 		// Get asset to view current tags
-		asset, err := pkgAsset.GetAsset(client, assetID)
+		asset, err := pkgAsset.GetAsset(context.Background(), client, assetID)
 		if err != nil {
 			if errors.Is(err, api.ErrNotFound) {
 				return fmt.Errorf("asset not found: %s", assetID)
@@ -338,7 +339,7 @@ var assetTagsCmd = &cobra.Command{
 		}
 
 		// Update tags
-		response, err := pkgAsset.SetAssetTags(client, assetID, newTags)
+		response, err := pkgAsset.SetAssetTags(context.Background(), client, assetID, newTags)
 		if err != nil {
 			return fmt.Errorf("failed to update tags: %w", err)
 		}
@@ -385,7 +386,7 @@ var assetAnalyticsCmd = &cobra.Command{
 		format, _ := cmd.Flags().GetString("format")
 
 		// --- API Call ---
-		analytics, err := pkgAsset.GetAssetAnalytics(client, assetID, days)
+		analytics, err := pkgAsset.GetAssetAnalytics(context.Background(), client, assetID, days)
 		if err != nil {
 			if errors.Is(err, api.ErrNotFound) {
 				return fmt.Errorf("asset not found: %s", assetID)
@@ -447,7 +448,7 @@ var assetAttacksCmd = &cobra.Command{
 			Name:   name,
 		}
 
-		attacks, err := pkgAsset.GetAssetAttacks(client, assetID, opts)
+		attacks, err := pkgAsset.GetAssetAttacks(context.Background(), client, assetID, opts)
 		if err != nil {
 			if errors.Is(err, api.ErrNotFound) {
 				return fmt.Errorf("asset not found: %s", assetID)
@@ -509,7 +510,7 @@ var assetExecutionsCmd = &cobra.Command{
 			Name:   name,
 		}
 
-		executions, err := pkgAsset.GetAssetExecutions(client, assetID, opts)
+		executions, err := pkgAsset.GetAssetExecutions(context.Background(), client, assetID, opts)
 		if err != nil {
 			if errors.Is(err, api.ErrNotFound) {
 				return fmt.Errorf("asset not found: %s", assetID)
@@ -571,7 +572,7 @@ var assetPacksCmd = &cobra.Command{
 			Name:   name,
 		}
 
-		packs, err := pkgAsset.GetAssetPacks(client, assetID, opts)
+		packs, err := pkgAsset.GetAssetPacks(context.Background(), client, assetID, opts)
 		if err != nil {
 			if errors.Is(err, api.ErrNotFound) {
 				return fmt.Errorf("asset not found: %s", assetID)

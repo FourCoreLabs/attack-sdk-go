@@ -100,7 +100,14 @@ func NewHTTPAPI(baseURL, apiKey string, client ...*http.Client) (*HTTPAPI, error
 		return nil, err
 	}
 
-	httpClient := &http.Client{Timeout: 60 * time.Second}
+	transport := &http.Transport{
+		MaxIdleConns:        100,
+		MaxConnsPerHost:     10,
+		MaxIdleConnsPerHost: 10,
+		IdleConnTimeout:     90 * time.Second,
+	}
+
+	httpClient := &http.Client{Timeout: 60 * time.Second, Transport: transport}
 	if len(client) > 0 {
 		httpClient = client[0]
 	}
@@ -158,8 +165,8 @@ type ReqOptions struct {
 	Headers map[string]string
 }
 
-func (g *HTTPAPI) Req(method string, uri string, postBody []byte, isJSON bool, options ...ReqOptions) ([]byte, int, string, error) {
-	return g.reqBase(g.baseURL, method, uri, postBody, isJSON, options...)
+func (g *HTTPAPI) Req(ctx context.Context, method string, uri string, postBody []byte, isJSON bool, options ...ReqOptions) ([]byte, int, string, error) {
+	return g.reqBase(ctx, g.baseURL, method, uri, postBody, isJSON, options...)
 }
 
 // RateInfo contains information about API rate limits
@@ -197,7 +204,7 @@ func parseRateLimitHeaders(headers http.Header) RateInfo {
 	return info
 }
 
-func (g *HTTPAPI) reqBase(base *url.URL, method string, uri string, postBody []byte, isJSON bool, options ...ReqOptions) ([]byte, int, string, error) {
+func (g *HTTPAPI) reqBase(ctx context.Context, base *url.URL, method string, uri string, postBody []byte, isJSON bool, options ...ReqOptions) ([]byte, int, string, error) {
 	// We can use either IsAllowed or Wait depending on whether we want to block or return immediately
 	// Let's implement both approaches with priority to IsAllowed for quick checks
 
@@ -230,7 +237,7 @@ func (g *HTTPAPI) reqBase(base *url.URL, method string, uri string, postBody []b
 	}
 
 	buf := bytes.NewBuffer(postBody)
-	req, err := http.NewRequest(method, g.ResolveBase(base, uri), buf)
+	req, err := http.NewRequestWithContext(ctx, method, g.ResolveBase(base, uri), buf)
 	if err != nil {
 		return nil, 0, "", err
 	}
@@ -284,8 +291,8 @@ func (g *HTTPAPI) reqBase(base *url.URL, method string, uri string, postBody []b
 	return body, response.StatusCode, response.Header.Get("Content-Type"), err
 }
 
-func (g *HTTPAPI) ReqBuf(method string, uri string, buf []byte, dest interface{}, options ...ReqOptions) (interface{}, error) {
-	body, statusCode, _, err := g.Req(method, uri, buf, true, options...)
+func (g *HTTPAPI) ReqBuf(ctx context.Context, method string, uri string, buf []byte, dest interface{}, options ...ReqOptions) (interface{}, error) {
+	body, statusCode, _, err := g.Req(ctx, method, uri, buf, true, options...)
 	if err != nil {
 		return nil, err
 	}
@@ -342,7 +349,7 @@ func (g *HTTPAPI) ReqBuf(method string, uri string, buf []byte, dest interface{}
 	}
 }
 
-func (g *HTTPAPI) ReqJSON(method string, uri string, post interface{}, dest interface{}, options ...ReqOptions) (interface{}, error) {
+func (g *HTTPAPI) ReqJSON(ctx context.Context, method string, uri string, post interface{}, dest interface{}, options ...ReqOptions) (interface{}, error) {
 	var err error
 	var buf []byte
 
@@ -353,7 +360,7 @@ func (g *HTTPAPI) ReqJSON(method string, uri string, post interface{}, dest inte
 		}
 	}
 
-	msg, err := g.ReqBuf(method, uri, buf, dest, options...)
+	msg, err := g.ReqBuf(ctx, method, uri, buf, dest, options...)
 	if err != nil {
 		return msg, err
 	}
@@ -361,18 +368,18 @@ func (g *HTTPAPI) ReqJSON(method string, uri string, post interface{}, dest inte
 	return dest, nil
 }
 
-func (g *HTTPAPI) GetJSON(uri string, dest interface{}, options ...ReqOptions) (interface{}, error) {
-	return g.ReqJSON("GET", uri, nil, dest, options...)
+func (g *HTTPAPI) GetJSON(ctx context.Context, uri string, dest interface{}, options ...ReqOptions) (interface{}, error) {
+	return g.ReqJSON(ctx, "GET", uri, nil, dest, options...)
 }
 
-func (g *HTTPAPI) PostJSON(uri string, post interface{}, dest interface{}, options ...ReqOptions) (interface{}, error) {
-	return g.ReqJSON("POST", uri, post, dest, options...)
+func (g *HTTPAPI) PostJSON(ctx context.Context, uri string, post interface{}, dest interface{}, options ...ReqOptions) (interface{}, error) {
+	return g.ReqJSON(ctx, "POST", uri, post, dest, options...)
 }
 
-func (g *HTTPAPI) PutJSON(uri string, post interface{}, dest interface{}, options ...ReqOptions) (interface{}, error) {
-	return g.ReqJSON("PUT", uri, post, dest, options...)
+func (g *HTTPAPI) PutJSON(ctx context.Context, uri string, post interface{}, dest interface{}, options ...ReqOptions) (interface{}, error) {
+	return g.ReqJSON(ctx, "PUT", uri, post, dest, options...)
 }
 
-func (g *HTTPAPI) DeleteJSON(uri string, post interface{}, dest interface{}, options ...ReqOptions) (interface{}, error) {
-	return g.ReqJSON("DELETE", uri, post, dest, options...)
+func (g *HTTPAPI) DeleteJSON(ctx context.Context, uri string, post interface{}, dest interface{}, options ...ReqOptions) (interface{}, error) {
+	return g.ReqJSON(ctx, "DELETE", uri, post, dest, options...)
 }

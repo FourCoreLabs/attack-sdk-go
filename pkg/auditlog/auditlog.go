@@ -1,6 +1,7 @@
 package auditlog
 
 import (
+	"context"
 	"strconv"
 
 	"github.com/fourcorelabs/attack-sdk-go/pkg/api"
@@ -19,10 +20,10 @@ type AuditLogOpts struct {
 }
 
 // GetAuditLogs retrieves audit logs from the API with the given options.
-func GetAuditLogs(h *api.HTTPAPI, opts AuditLogOpts) (models.PaginationResponse[auditlog.AuditLog], error) {
+func GetAuditLogs(ctx context.Context, h *api.HTTPAPI, opts AuditLogOpts) (models.PaginationResponse[auditlog.AuditLog], error) {
 	var resp models.PaginationResponse[auditlog.AuditLog]
 
-	_, err := h.GetJSON(AuditLogV2URI, &resp, api.ReqOptions{
+	_, err := h.GetJSON(ctx, AuditLogV2URI, &resp, api.ReqOptions{
 		Params: map[string]string{
 			"size":   strconv.FormatInt(int64(opts.Size), 10),
 			"offset": strconv.FormatInt(int64(opts.Offset), 10),

@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -43,7 +44,7 @@ var emailAssetListCmd = &cobra.Command{
 		format, _ := cmd.Flags().GetString("format")
 
 		// --- API Call ---
-		assets, err := pkgAsset.GetEmailAssets(client)
+		assets, err := pkgAsset.GetEmailAssets(context.Background(), client)
 		if err != nil {
 			// Check for specific API errors
 			if errors.Is(err, api.ErrApiKeyInvalid) {
@@ -95,7 +96,7 @@ var emailAssetGetCmd = &cobra.Command{
 		format, _ := cmd.Flags().GetString("format")
 
 		// --- API Call ---
-		asset, err := pkgAsset.GetEmailAsset(client, assetID)
+		asset, err := pkgAsset.GetEmailAsset(context.Background(), client, assetID)
 		if err != nil {
 			// Check for specific API errors
 			if errors.Is(err, api.ErrApiKeyInvalid) {
@@ -145,7 +146,7 @@ var emailAssetCreateCmd = &cobra.Command{
 		tags, _ := cmd.Flags().GetStringToString("tags")
 
 		// --- API Call ---
-		asset, err := pkgAsset.CreateEmailAsset(client, email, tags)
+		asset, err := pkgAsset.CreateEmailAsset(context.Background(), client, email, tags)
 		if err != nil {
 			// Check for specific API errors
 			if errors.Is(err, api.ErrApiKeyInvalid) {
@@ -188,7 +189,7 @@ var emailAssetUpdateCmd = &cobra.Command{
 		tags, _ := cmd.Flags().GetStringToString("tags")
 
 		// --- API Call ---
-		response, err := pkgAsset.UpdateEmailAsset(client, assetID, email, tags)
+		response, err := pkgAsset.UpdateEmailAsset(context.Background(), client, assetID, email, tags)
 		if err != nil {
 			// Check for specific API errors
 			if errors.Is(err, api.ErrApiKeyInvalid) {
@@ -246,7 +247,7 @@ var emailAssetDeleteCmd = &cobra.Command{
 		}
 
 		// --- API Call ---
-		response, err := pkgAsset.DeleteEmailAsset(client, assetID)
+		response, err := pkgAsset.DeleteEmailAsset(context.Background(), client, assetID)
 		if err != nil {
 			// Check for specific API errors
 			if errors.Is(err, api.ErrApiKeyInvalid) {
@@ -292,7 +293,7 @@ var emailAssetVerifyCmd = &cobra.Command{
 		}
 
 		// --- API Call ---
-		response, err := pkgAsset.VerifyEmailAsset(client, assetID)
+		response, err := pkgAsset.VerifyEmailAsset(context.Background(), client, assetID)
 		if err != nil {
 			// Check for specific API errors
 			if errors.Is(err, api.ErrApiKeyInvalid) {
@@ -342,7 +343,7 @@ var emailAssetAnalyticsCmd = &cobra.Command{
 		format, _ := cmd.Flags().GetString("format")
 
 		// --- API Call ---
-		analytics, err := pkgAsset.GetEmailAssetAnalytics(client, assetID, days)
+		analytics, err := pkgAsset.GetEmailAssetAnalytics(context.Background(), client, assetID, days)
 		if err != nil {
 			if errors.Is(err, api.ErrNotFound) {
 				return fmt.Errorf("email asset not found: %s", assetID)
@@ -390,7 +391,7 @@ var emailAssetGmailConfCodeCmd = &cobra.Command{
 		}
 
 		// --- API Call ---
-		confCode, err := pkgAsset.GetGmailConfirmationCode(client, assetID)
+		confCode, err := pkgAsset.GetGmailConfirmationCode(context.Background(), client, assetID)
 		if err != nil {
 			if errors.Is(err, api.ErrNotFound) {
 				return fmt.Errorf("email asset not found: %s", assetID)

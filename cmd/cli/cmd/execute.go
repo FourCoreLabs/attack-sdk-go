@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -65,7 +66,7 @@ var endpointChainCmd = &cobra.Command{
 		}
 
 		// --- API Call ---
-		execution, err := chains.ExecuteEndpointChain(client, chainID, attackRun)
+		execution, err := chains.ExecuteEndpointChain(context.Background(), client, chainID, attackRun)
 		if err != nil {
 			// Check for specific API errors
 			if errors.Is(err, api.ErrApiKeyInvalid) {
@@ -113,7 +114,7 @@ var emailChainCmd = &cobra.Command{
 		}
 
 		// --- API Call ---
-		execution, err := emailchains.ExecuteEmailChain(client, chainID, attackRun)
+		execution, err := emailchains.ExecuteEmailChain(context.Background(), client, chainID, attackRun)
 		if err != nil {
 			// Check for specific API errors
 			if errors.Is(err, api.ErrApiKeyInvalid) {
@@ -161,7 +162,7 @@ var wafChainCmd = &cobra.Command{
 		}
 
 		// --- API Call ---
-		execution, err := wafchains.ExecuteWAFChain(client, chainID, attackRun)
+		execution, err := wafchains.ExecuteWAFChain(context.Background(), client, chainID, attackRun)
 		if err != nil {
 			// Check for specific API errors
 			if errors.Is(err, api.ErrApiKeyInvalid) {

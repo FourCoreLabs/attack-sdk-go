@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -86,7 +87,7 @@ var agentLogListCmd = &cobra.Command{
 		}
 
 		// --- API Call ---
-		logs, err := pkgAgentLog.GetAgentLogs(client, opts)
+		logs, err := pkgAgentLog.GetAgentLogs(context.Background(), client, opts)
 		if err != nil {
 			// Check for specific API errors if needed
 			if errors.Is(err, api.ErrApiKeyInvalid) {

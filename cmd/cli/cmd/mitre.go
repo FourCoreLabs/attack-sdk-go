@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -42,7 +43,7 @@ var mitreCoverageCmd = &cobra.Command{
 		format, _ := cmd.Flags().GetString("format")
 
 		// --- API Call ---
-		coverage, err := pkgMitre.GetAllMitreCoverage(client, days)
+		coverage, err := pkgMitre.GetAllMitreCoverage(context.Background(), client, days)
 		if err != nil {
 			// Check for specific API errors
 			if errors.Is(err, api.ErrApiKeyInvalid) {
@@ -95,7 +96,7 @@ var mitreTechniqueCmd = &cobra.Command{
 		format, _ := cmd.Flags().GetString("format")
 
 		// --- API Call ---
-		technique, err := pkgMitre.GetMitreTechnique(client, techniqueID, days)
+		technique, err := pkgMitre.GetMitreTechnique(context.Background(), client, techniqueID, days)
 		if err != nil {
 			// Check for specific API errors
 			if errors.Is(err, api.ErrApiKeyInvalid) {
