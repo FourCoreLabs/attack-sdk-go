@@ -1,0 +1,14 @@
+builds:
+  - binary: fourcore-cli
+    goos:
+      - windows
+      - linux
+      - darwin
+    goarch:
+      - amd64
+      - arm64
+    ldflags:
+      - "-s -w"
+    main: cmd/cli/main.go
+archives:
+  - format: zip
