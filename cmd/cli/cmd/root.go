@@ -20,7 +20,7 @@ var (
 // rootCmd represents the base command when called without any subcommands
 var rootCmd = &cobra.Command{
 	Use:     "fourcore-cli",
-	Version: "0.2.0", // Updated version maybe
+	Version: "1.0.0",
 	Short:   "CLI for FourCore ATTACK REST API",
 	Long: `A command-line interface to interact with the FourCore ATTACK REST API,
 allowing management and retrieval of various resources.`,
