@@ -98,6 +98,12 @@ type GetAssetExecutionsOpts struct {
 	Name   string
 }
 
+// GetAssetsOptions represents options for filtering assets
+type GetAssetsOpts struct {
+	Connected bool // connected assets
+	Available bool // available assets
+}
+
 // GetAssetAttacks retrieves attack executions for a specific asset
 func GetAssetAttacks(ctx context.Context, h *api.HTTPAPI, assetID string, opts GetAssetAttacksOpts) (models.ListWithCount, error) {
 	var attacks models.ListWithCount
@@ -236,4 +242,29 @@ func GetGmailConfirmationCode(ctx context.Context, h *api.HTTPAPI, assetID strin
 	endpoint := fmt.Sprintf("%s/%s/gmail/confirmation", EmailAssetsV2URI, assetID)
 	_, err := h.GetJSON(ctx, endpoint, &confCode)
 	return confCode, err
+}
+
+func GetFilteredAssets(ctx context.Context, h *api.HTTPAPI, opts GetAssetsOpts) ([]asset.Asset, error) {
+	assets, err := GetAssets(ctx, h)
+	if err != nil {
+		return nil, err
+	}
+
+	if !opts.Connected && !opts.Available {
+		return assets, nil
+	}
+
+	// Apply filters
+	var filteredAssets []asset.Asset
+	for _, a := range assets {
+		if opts.Connected && !a.Connected {
+			continue
+		}
+		if opts.Available && !a.Available {
+			continue
+		}
+		filteredAssets = append(filteredAssets, a)
+	}
+
+	return filteredAssets, nil
 }
