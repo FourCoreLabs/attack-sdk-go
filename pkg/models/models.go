@@ -407,3 +407,10 @@ type ListWithCountExecutions struct {
 	Count int                    `json:"count"`
 	Data  []GetExecutionResponse `json:"data"`
 }
+
+type ExecutionStepDetections struct {
+	GetExecutionResponseAssetStep
+	AssetID  string `json:"asset_id,omitempty"`
+	Hostname string `json:"hostname,omitempty"`
+	Platform string `json:"platform,omitempty"`
+}

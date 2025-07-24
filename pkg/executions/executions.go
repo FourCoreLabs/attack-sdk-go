@@ -97,6 +97,28 @@ func GetExecutionReport(ctx context.Context, h *api.HTTPAPI, executionID string)
 	return resp, err
 }
 
+func GetExecutionStepReport(ctx context.Context, h *api.HTTPAPI, executionID string) ([]models.ExecutionStepDetections, error) {
+	var resp models.GetExecutionResponse
+	var det []models.ExecutionStepDetections
+
+	endpoint := fmt.Sprintf("%s/%s/report", ExecutionsV2URI, executionID)
+	_, err := h.GetJSON(ctx, endpoint, &resp)
+
+	for _, asset := range resp.Assets {
+		for _, step := range asset.Steps {
+			det = append(det, models.ExecutionStepDetections{
+				GetExecutionResponseAssetStep: step,
+				AssetID:                       asset.AssetID,
+				Hostname:                      asset.Hostname,
+				Platform:                      asset.Platform,
+			})
+		}
+	}
+
+	return det, err
+
+}
+
 // DeleteExecution deletes an execution by ID
 func DeleteExecution(ctx context.Context, h *api.HTTPAPI, executionID string) (models.SuccessIDResponse, error) {
 	var resp models.SuccessIDResponse
