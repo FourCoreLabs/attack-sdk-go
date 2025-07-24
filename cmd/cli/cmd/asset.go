@@ -43,9 +43,16 @@ var assetListCmd = &cobra.Command{
 
 		// --- Get Flags ---
 		format, _ := cmd.Flags().GetString("format")
+		connected, _ := cmd.Flags().GetBool("connected")
+		available, _ := cmd.Flags().GetBool("available")
 
-		// --- API Call ---
-		assets, err := pkgAsset.GetAssets(context.Background(), client)
+		// --- API Call with filtering ---
+		opts := pkgAsset.GetAssetsOpts{
+			Connected: connected,
+			Available: available,
+		}
+
+		assets, err := pkgAsset.GetFilteredAssets(context.Background(), client, opts)
 		if err != nil {
 			// Check for specific API errors
 			if errors.Is(err, api.ErrApiKeyInvalid) {
@@ -614,6 +621,8 @@ func init() {
 
 	// --- Common Flags ---
 	// Format flag for all commands that output data
+	assetListCmd.Flags().BoolP("connected", "c", false, "Show only connected assets")
+	assetListCmd.Flags().BoolP("available", "a", false, "Show only available assets")
 	assetListCmd.Flags().StringP("format", "f", "table", "Output format (table, json)")
 	assetGetCmd.Flags().StringP("format", "f", "table", "Output format (table, json)")
 	assetAnalyticsCmd.Flags().StringP("format", "f", "table", "Output format (table, json)")
