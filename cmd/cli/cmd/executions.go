@@ -161,6 +161,56 @@ var executionsGetCmd = &cobra.Command{
 	},
 }
 
+// executionsGetCmd represents the executions get command
+var executionsGetDetectionCmd = &cobra.Command{
+	Use:   "steps [execution_id]",
+	Short: "Get execution step report",
+	Long:  `Retrieves execution steps report for a specific execution.`,
+	Args:  cobra.ExactArgs(1),
+	RunE: func(cmd *cobra.Command, args []string) error {
+		// --- Validation ---
+		if apiKeyVal == "" {
+			return fmt.Errorf("API key is required. Set it using --api-key flag, FOURCORE_API_KEY environment variable, or 'config set api-key' command")
+		}
+
+		executionID := args[0]
+		if executionID == "" {
+			return fmt.Errorf("execution ID is required")
+		}
+
+		// --- API Client ---
+		client, err := api.NewHTTPAPI(baseUrlVal, apiKeyVal)
+		if err != nil {
+			return fmt.Errorf("failed to create API client: %w", err)
+		}
+
+		// --- Get Flags ---
+		format, _ := cmd.Flags().GetString("format")
+
+		// --- API Call ---
+		execution, err := pkgExecutions.GetExecutionStepReport(context.Background(), client, executionID)
+		if err != nil {
+			// Check for specific API errors
+			if errors.Is(err, api.ErrApiKeyInvalid) {
+				return fmt.Errorf("API request failed: Invalid API Key")
+			}
+			if errors.Is(err, api.ErrNotFound) {
+				return fmt.Errorf("execution not found: %s", executionID)
+			}
+			return fmt.Errorf("failed to retrieve execution report: %w", err)
+		}
+
+		// --- Output ---
+		switch strings.ToLower(format) {
+		case "json":
+			return printExecutionStepJSON(execution)
+		default:
+			printStepReportDetails(execution)
+			return nil
+		}
+	},
+}
+
 // executionsDeleteCmd represents the executions delete command
 var executionsDeleteCmd = &cobra.Command{
 	Use:   "delete [execution_id]",
@@ -224,12 +274,14 @@ func init() {
 	executionsCmd.AddCommand(executionsListCmd)
 	executionsCmd.AddCommand(executionsGetCmd)
 	executionsCmd.AddCommand(executionsDeleteCmd)
+	executionsCmd.AddCommand(executionsGetDetectionCmd)
 
 	// Add executions command to root command
 	rootCmd.AddCommand(executionsCmd)
 
 	// --- Common Flags ---
 	// Format flag for commands that output data
+	executionsGetDetectionCmd.Flags().StringP("format", "f", "table", "Output format (table, json)")
 	executionsListCmd.Flags().StringP("format", "f", "table", "Output format (table, json)")
 	executionsGetCmd.Flags().StringP("format", "f", "table", "Output format (table, json)")
 
@@ -322,6 +374,127 @@ func printExecutionJSON(execution models.GetExecutionResponse) error {
 	}
 	fmt.Println(string(jsonData))
 	return nil
+}
+
+func printExecutionStepJSON(execution []models.ExecutionStepDetections) error {
+	jsonData, err := json.MarshalIndent(execution, "", "  ")
+	if err != nil {
+		return fmt.Errorf("failed to format JSON output: %w", err)
+	}
+	fmt.Println(string(jsonData))
+	return nil
+}
+
+// printStepReportDetails formats and prints the details for a slice of ExecutionStepDetections,
+// maintaining a consistent, aligned structure for clear readability in the terminal.
+func printStepReportDetails(steps []models.ExecutionStepDetections) {
+	fmt.Println("Step Report Details:")
+
+	if len(steps) == 0 {
+		fmt.Println("  No steps found.")
+		return
+	}
+
+	for i, step := range steps {
+		fmt.Printf("\n--- Step %d ---\n", i+1)
+
+		// --- Basic Step and Asset Information ---
+		fmt.Printf("Step Name:        %s\n", step.Name)
+		fmt.Printf("Asset Hostname:   %s\n", step.Hostname)
+		fmt.Printf("Asset ID:         %s\n", step.AssetID)
+
+		// --- Optional Step Description ---
+		if step.Description != "" {
+			// Handle multi-line descriptions gracefully
+			descLines := strings.Split(step.Description, "\n")
+			if len(descLines) > 1 {
+				fmt.Printf("Description:      %s\n", descLines[0])
+				for _, line := range descLines[1:] {
+					fmt.Printf("                  %s\n", line)
+				}
+			} else {
+				fmt.Printf("Description:      %s\n", step.Description)
+			}
+		}
+
+		// --- Events ---
+		if len(step.Events) > 0 {
+			fmt.Printf("\nEvents:\n")
+			for _, event := range step.Events {
+				fmt.Printf("  - [%s] Type: %s, Data: %s\n",
+					event.EventTime.Format(time.RFC3339),
+					event.Type,
+					strings.TrimSpace(event.Data))
+			}
+		}
+
+		// --- Output ---
+		if step.Output != nil && step.Output.Output != nil {
+			fmt.Printf("\nOutput:\n")
+			// The output can be complex; we'll format it as a string with indentation.
+			outputStr := fmt.Sprintf("%v", step.Output.Output)
+			fmt.Printf("  %s\n", strings.TrimSpace(outputStr))
+		}
+
+		// --- Files ---
+		if len(step.Files) > 0 {
+			fmt.Printf("\nFiles:\n")
+			for _, file := range step.Files {
+				if file.Valid {
+					fmt.Printf("  - Bucket: %s, Object: %s\n", file.Bucket, file.Object)
+				}
+			}
+		}
+
+		// --- Indicators of Compromise (IOCs) ---
+		if len(step.IOC) > 0 {
+			fmt.Printf("\nIndicators of Compromise (IOCs):\n")
+			for _, ioc := range step.IOC {
+				fmt.Printf("  - Type: %-10s | IOC: %v\n", ioc.IOCType, ioc.IOC)
+			}
+		}
+
+		// --- Alerts (Correlations) ---
+		if len(step.Correlations) > 0 {
+			fmt.Printf("\nAlerts (Correlations):\n")
+			for _, alert := range step.Correlations {
+				fmt.Printf("  - [%s] %s (Source: %s)\n",
+					alert.Severity,
+					alert.Name,
+					alert.Source)
+				if alert.Description != "" {
+					fmt.Printf("    Description: %s\n", alert.Description)
+				}
+			}
+		}
+
+		// --- Rules ---
+		if len(step.Rules) > 0 {
+			fmt.Printf("\nMatched Rules:\n")
+			for _, rule := range step.Rules {
+				fmt.Printf("  - Name: %s, Type: %s, Value: %s\n", rule.Name, rule.Type, rule.Value)
+				if rule.Hash != nil {
+					fmt.Printf("    (MD5: %s, SHA1: %s, SHA256: %s)\n", rule.Hash.MD5, rule.Hash.SHA1, rule.Hash.SHA256)
+				}
+			}
+		}
+
+		// --- Recommendations ---
+		if len(step.Recommendation) > 0 {
+			fmt.Printf("\nRecommendations:\n")
+			for _, rec := range step.Recommendation {
+				fmt.Printf("  - %s: %s\n", rec.Name, rec.Value)
+			}
+		}
+
+		// --- Mitigations ---
+		if len(step.Mitigations) > 0 {
+			fmt.Printf("\nMitigations:\n")
+			for _, mitigation := range step.Mitigations {
+				fmt.Printf("  - %s: %s\n", mitigation.Name, mitigation.Description)
+			}
+		}
+	}
 }
 
 func printExecutionItemDetails(execution models.GetExecutionResponse) {
