@@ -98,6 +98,17 @@ type AttackRun struct {
 	WafAssets      []string `json:"waf_assets,omitempty"`
 }
 
+type AttackStager struct {
+	StagerID   string `json:"stager_id,omitempty"`
+	StagerMode string `json:"stager_mode,omitempty"`
+}
+
+type AttackRunActionsStagers struct {
+	AttackRun
+	Stagers []AttackStager `json:"stagers,omitempty"`
+	Actions []string       `json:"actions,omitempty"`
+}
+
 // GetExecutionResponse represents the response body for getting an execution report.
 type GetExecutionResponse struct {
 	ActionIDs     []string                `json:"action_ids,omitempty"`
