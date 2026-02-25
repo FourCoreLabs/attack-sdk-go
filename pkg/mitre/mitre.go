@@ -16,8 +16,8 @@ func GetAllMitreCoverage(ctx context.Context, h *api.HTTPAPI, days int) ([]mitre
 	var resp []mitre.MitreTacticTechniqueWithActionAndStagers
 
 	endpoint := fmt.Sprintf("%s/all", MitreV2URI)
-	params := map[string]string{
-		"d": fmt.Sprintf("%d", days),
+	params := map[string][]string{
+		"d": {fmt.Sprintf("%d", days)},
 	}
 
 	_, err := h.GetJSON(ctx, endpoint, &resp, api.ReqOptions{
@@ -32,8 +32,8 @@ func GetMitreTechnique(ctx context.Context, h *api.HTTPAPI, techniqueID string, 
 	var resp mitre.MitreTacticTechniqueWithActionAndStagers
 
 	endpoint := fmt.Sprintf("%s/%s", MitreV2URI, techniqueID)
-	params := map[string]string{
-		"d": fmt.Sprintf("%d", days),
+	params := map[string][]string{
+		"d": {fmt.Sprintf("%d", days)},
 	}
 
 	_, err := h.GetJSON(ctx, endpoint, &resp, api.ReqOptions{
