@@ -161,8 +161,8 @@ func (g *HTTPAPI) ResolveBase(base *url.URL, uri string) string {
 }
 
 type ReqOptions struct {
-	Params  map[string]string
-	Headers map[string]string
+	Params  url.Values
+	Headers url.Values
 }
 
 func (g *HTTPAPI) Req(ctx context.Context, method string, uri string, postBody []byte, isJSON bool, options ...ReqOptions) ([]byte, int, string, error) {
@@ -251,13 +251,14 @@ func (g *HTTPAPI) reqBase(ctx context.Context, base *url.URL, method string, uri
 	if len(options) > 0 {
 		optionsVal := options[0]
 		for k, v := range optionsVal.Headers {
-			req.Header[k] = []string{v}
+			req.Header[k] = append(req.Header[k], v...)
 		}
 		if params := optionsVal.Params; len(params) > 0 {
 			q := req.URL.Query()
 			for k, v := range params {
-				q.Add(k, v)
+				q[k] = append(q[k], v...)
 			}
+
 			req.URL.RawQuery = q.Encode()
 		}
 	}

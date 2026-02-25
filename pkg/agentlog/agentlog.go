@@ -2,6 +2,7 @@ package agentlog
 
 import (
 	"context"
+	"net/url"
 	"strconv"
 	"strings"
 	"time"
@@ -31,32 +32,32 @@ func GetAgentLogs(ctx context.Context, h *api.HTTPAPI, opts AgentLogOpts) (model
 	var resp models.PaginationResponse[agentlog.AgentLog]
 
 	// Prepare parameters map
-	params := map[string]string{
-		"size":   strconv.FormatInt(int64(opts.Size), 10),
-		"offset": strconv.FormatInt(int64(opts.Offset), 10),
-		"order":  opts.Order,
-	}
+	params := url.Values{}
+	params.Add("size", strconv.FormatInt(int64(opts.Size), 10))
+	params.Add("offset", strconv.FormatInt(int64(opts.Offset), 10))
+	params.Add("order", opts.Order)
 
 	// Add optional filter params if set
 	if opts.Action != "" {
-		params["action"] = opts.Action
+		params.Add("action", opts.Action)
 	}
 
 	if !opts.DateAfter.IsZero() {
-		params["date_after"] = opts.DateAfter.Format(time.RFC3339)
+
+		params.Add("date_after", opts.DateAfter.Format(time.RFC3339))
 	}
 
 	if !opts.DateBefore.IsZero() {
-		params["date_before"] = opts.DateBefore.Format(time.RFC3339)
+		params.Add("date_before", opts.DateBefore.Format(time.RFC3339))
 	}
 
 	if opts.Query != "" {
-		params["q"] = opts.Query
+		params.Add("q", opts.Query)
 	}
 
 	// Add asset_id if there are any in the list
 	if len(opts.AssetIDs) > 0 {
-		params["asset_id"] = strings.Join(opts.AssetIDs, ",")
+		params.Add("asset_id", strings.Join(opts.AssetIDs, ","))
 	}
 
 	// Make the API request

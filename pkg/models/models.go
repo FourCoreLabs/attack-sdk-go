@@ -425,3 +425,13 @@ type ExecutionStepDetections struct {
 	Hostname string `json:"hostname,omitempty"`
 	Platform string `json:"platform,omitempty"`
 }
+
+type Tag map[string]any
+
+type MitreTacticTechnique struct {
+	TacticID       string `json:"tactic_id"`
+	TechniqueID    string `json:"technique_id"`
+	SubTechniqueID string `json:"sub_technique_id"`
+	AbsoluteID     string `json:"absolute_id"`
+	StepID         int    `json:"step_id"`
+}

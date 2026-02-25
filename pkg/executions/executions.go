@@ -3,6 +3,7 @@ package executions
 import (
 	"context"
 	"fmt"
+	"net/url"
 	"strconv"
 	"strings"
 	"time"
@@ -35,48 +36,48 @@ func GetExecutions(ctx context.Context, h *api.HTTPAPI, opts ExecutionOpts) (mod
 	var resp models.ListWithCountExecutions
 
 	// Prepare parameters map
-	params := map[string]string{
-		"size":   strconv.FormatInt(int64(opts.Size), 10),
-		"offset": strconv.FormatInt(int64(opts.Offset), 10),
-		"order":  opts.Order,
+	params := url.Values{
+		"size":   []string{strconv.FormatInt(int64(opts.Size), 10)},
+		"offset": []string{strconv.FormatInt(int64(opts.Offset), 10)},
+		"order":  []string{opts.Order},
 	}
 
 	// Add optional filter params if set
 	if opts.Name != "" {
-		params["name"] = opts.Name
+		params.Add("name", opts.Name)
 	}
 
 	if !opts.DateBefore.IsZero() {
-		params["date_before"] = opts.DateBefore.Format(time.RFC3339)
+		params.Add("date_before", opts.DateBefore.Format(time.RFC3339))
 	}
 
 	if !opts.DateAfter.IsZero() {
-		params["date_after"] = opts.DateAfter.Format(time.RFC3339)
+		params.Add("date_after", opts.DateAfter.Format(time.RFC3339))
 	}
 
 	if opts.Status != "" {
-		params["status"] = opts.Status
+		params.Add("status", opts.Status)
 	}
 
 	// Add array parameters
 	if len(opts.AssetIDs) > 0 {
-		params["asset_id"] = strings.Join(opts.AssetIDs, ",")
+		params.Add("asset_id", strings.Join(opts.AssetIDs, ","))
 	}
 
 	if len(opts.Hostnames) > 0 {
-		params["hostname"] = strings.Join(opts.Hostnames, ",")
+		params.Add("hostname", strings.Join(opts.Hostnames, ","))
 	}
 
 	if len(opts.ChainIDs) > 0 {
-		params["chain_id"] = strings.Join(opts.ChainIDs, ",")
+		params.Add("chain_id", strings.Join(opts.ChainIDs, ","))
 	}
 
 	if len(opts.AttackIDs) > 0 {
-		params["attack_id"] = strings.Join(opts.AttackIDs, ",")
+		params.Add("attack_id", strings.Join(opts.AttackIDs, ","))
 	}
 
 	if len(opts.ExecutionType) > 0 {
-		params["execution_type"] = strings.Join(opts.ExecutionType, ",")
+		params.Add("execution_type", strings.Join(opts.ExecutionType, ","))
 	}
 
 	// Make the API request

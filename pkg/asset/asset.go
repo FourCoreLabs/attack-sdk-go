@@ -64,8 +64,8 @@ func GetAssetAnalytics(ctx context.Context, h *api.HTTPAPI, assetID string, days
 
 	endpoint := fmt.Sprintf("%s/%s/analytics", AssetsV2URI, assetID)
 	_, err := h.GetJSON(ctx, endpoint, &analytics, api.ReqOptions{
-		Params: map[string]string{
-			"d": fmt.Sprintf("%d", days),
+		Params: map[string][]string{
+			"d": []string{fmt.Sprintf("%d", days)},
 		},
 	})
 	return analytics, err
@@ -109,14 +109,14 @@ func GetAssetAttacks(ctx context.Context, h *api.HTTPAPI, assetID string, opts G
 	var attacks models.ListWithCount
 
 	endpoint := fmt.Sprintf("%s/%s/attacks", AssetsV2URI, assetID)
-	params := map[string]string{
-		"size":   fmt.Sprintf("%d", opts.Size),
-		"offset": fmt.Sprintf("%d", opts.Offset),
-		"order":  opts.Order,
+	params := map[string][]string{
+		"size":   []string{fmt.Sprintf("%d", opts.Size)},
+		"offset": []string{fmt.Sprintf("%d", opts.Offset)},
+		"order":  []string{opts.Order},
 	}
 
 	if opts.Name != "" {
-		params["name"] = opts.Name
+		params["name"] = []string{opts.Name}
 	}
 
 	_, err := h.GetJSON(ctx, endpoint, &attacks, api.ReqOptions{Params: params})
@@ -128,14 +128,14 @@ func GetAssetExecutions(ctx context.Context, h *api.HTTPAPI, assetID string, opt
 	var executions models.ListWithCount
 
 	endpoint := fmt.Sprintf("%s/%s/executions", AssetsV2URI, assetID)
-	params := map[string]string{
-		"size":   fmt.Sprintf("%d", opts.Size),
-		"offset": fmt.Sprintf("%d", opts.Offset),
-		"order":  opts.Order,
+	params := map[string][]string{
+		"size":   []string{fmt.Sprintf("%d", opts.Size)},
+		"offset": []string{fmt.Sprintf("%d", opts.Offset)},
+		"order":  []string{opts.Order},
 	}
 
 	if opts.Name != "" {
-		params["name"] = opts.Name
+		params["name"] = []string{opts.Name}
 	}
 
 	_, err := h.GetJSON(ctx, endpoint, &executions, api.ReqOptions{Params: params})
@@ -147,14 +147,14 @@ func GetAssetPacks(ctx context.Context, h *api.HTTPAPI, assetID string, opts Get
 	var packs []models.PackRun
 
 	endpoint := fmt.Sprintf("%s/%s/packs", AssetsV2URI, assetID)
-	params := map[string]string{
-		"size":   fmt.Sprintf("%d", opts.Size),
-		"offset": fmt.Sprintf("%d", opts.Offset),
-		"order":  opts.Order,
+	params := map[string][]string{
+		"size":   []string{fmt.Sprintf("%d", opts.Size)},
+		"offset": []string{fmt.Sprintf("%d", opts.Offset)},
+		"order":  []string{opts.Order},
 	}
 
 	if opts.Name != "" {
-		params["name"] = opts.Name
+		params["name"] = []string{opts.Name}
 	}
 
 	_, err := h.GetJSON(ctx, endpoint, &packs, api.ReqOptions{Params: params})
@@ -228,8 +228,8 @@ func GetEmailAssetAnalytics(ctx context.Context, h *api.HTTPAPI, assetID string,
 
 	endpoint := fmt.Sprintf("%s/%s/analytics", EmailAssetsV2URI, assetID)
 	_, err := h.GetJSON(ctx, endpoint, &analytics, api.ReqOptions{
-		Params: map[string]string{
-			"d": fmt.Sprintf("%d", days),
+		Params: map[string][]string{
+			"d": []string{fmt.Sprintf("%d", days)},
 		},
 	})
 	return analytics, err

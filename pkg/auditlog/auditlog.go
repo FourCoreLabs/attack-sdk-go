@@ -24,10 +24,10 @@ func GetAuditLogs(ctx context.Context, h *api.HTTPAPI, opts AuditLogOpts) (model
 	var resp models.PaginationResponse[auditlog.AuditLog]
 
 	_, err := h.GetJSON(ctx, AuditLogV2URI, &resp, api.ReqOptions{
-		Params: map[string]string{
-			"size":   strconv.FormatInt(int64(opts.Size), 10),
-			"offset": strconv.FormatInt(int64(opts.Offset), 10),
-			"order":  opts.Order,
+		Params: map[string][]string{
+			"size":   []string{strconv.FormatInt(int64(opts.Size), 10)},
+			"offset": []string{strconv.FormatInt(int64(opts.Offset), 10)},
+			"order":  []string{opts.Order},
 		},
 	})
 
