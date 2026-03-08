@@ -12,6 +12,36 @@ type FilterBy struct {
 	Value []string
 }
 
+type Severity string
+
+const (
+	SeverityCritical Severity = "critical"
+	SeverityHigh     Severity = "high"
+	SeverityMedium   Severity = "medium"
+	SeverityLow      Severity = "low"
+)
+
+var ValidSeverities = []Severity{
+	SeverityCritical,
+	SeverityHigh,
+	SeverityMedium,
+	SeverityLow,
+}
+
+type Platform string
+
+const (
+	PlatformDarwin  Platform = "darwin"
+	PlatformWindows Platform = "windows"
+	PlatformLinux   Platform = "linux"
+)
+
+var ValidPlatforms = []Platform{
+	PlatformDarwin,
+	PlatformWindows,
+	PlatformLinux,
+}
+
 type Pagination struct {
 	Offset      uint64     `json:"offset" example:"1" description:"set offset"`
 	Size        uint64     `json:"size"`
