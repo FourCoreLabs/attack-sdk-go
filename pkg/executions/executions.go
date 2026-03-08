@@ -32,8 +32,8 @@ type ExecutionOpts struct {
 }
 
 // GetExecutions retrieves executions from the API with the given options
-func GetExecutions(ctx context.Context, h *api.HTTPAPI, opts ExecutionOpts) (models.ListWithCountExecutions, error) {
-	var resp models.ListWithCountExecutions
+func GetExecutions(ctx context.Context, h *api.HTTPAPI, opts ExecutionOpts) (models.ListWithCount[models.GetExecutionResponse], error) {
+	var resp models.ListWithCount[models.GetExecutionResponse]
 
 	// Prepare parameters map
 	params := url.Values{

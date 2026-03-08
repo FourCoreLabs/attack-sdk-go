@@ -61,13 +61,13 @@ func (r *ViewRender) RegisterRenderer(format Format, factory RendererFactory) er
 	return nil
 }
 
-func (r *ViewRender) Render(format Format, w io.Writer, items []any) error {
+func (r *ViewRender) Render(format Format, w io.Writer, items []any, opts ...renderers.RendererOptFunc) error {
 	renderer, err := r.GetRenderer(format)
 	if err != nil {
 		return err
 	}
 
-	return renderer.Render(w, items)
+	return renderer.Render(w, items, opts...)
 }
 
 func (r *ViewRender) GetRenderer(format Format) (renderers.Renderer, error) {

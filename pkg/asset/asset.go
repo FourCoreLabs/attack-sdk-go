@@ -72,7 +72,7 @@ func GetAssetAnalytics(ctx context.Context, h *api.HTTPAPI, assetID string, days
 }
 
 // SetAssetTags updates the tags for an asset
-func SetAssetTags(ctx context.Context, h *api.HTTPAPI, assetID string, tags map[string]string) (asset.AssetSetTagsResponse, error) {
+func SetAssetTags(ctx context.Context, h *api.HTTPAPI, assetID string, tags map[string]any) (asset.AssetSetTagsResponse, error) {
 	var response asset.AssetSetTagsResponse
 
 	endpoint := fmt.Sprintf("%s/%s/tags", AssetsV2URI, assetID)
@@ -105,8 +105,8 @@ type GetAssetsOpts struct {
 }
 
 // GetAssetAttacks retrieves attack executions for a specific asset
-func GetAssetAttacks(ctx context.Context, h *api.HTTPAPI, assetID string, opts GetAssetAttacksOpts) (models.ListWithCount, error) {
-	var attacks models.ListWithCount
+func GetAssetAttacks(ctx context.Context, h *api.HTTPAPI, assetID string, opts GetAssetAttacksOpts) (models.ListWithCount[any], error) {
+	var attacks models.ListWithCount[any]
 
 	endpoint := fmt.Sprintf("%s/%s/attacks", AssetsV2URI, assetID)
 	params := map[string][]string{
@@ -124,8 +124,8 @@ func GetAssetAttacks(ctx context.Context, h *api.HTTPAPI, assetID string, opts G
 }
 
 // GetAssetExecutions retrieves execution reports for a specific asset
-func GetAssetExecutions(ctx context.Context, h *api.HTTPAPI, assetID string, opts GetAssetExecutionsOpts) (models.ListWithCount, error) {
-	var executions models.ListWithCount
+func GetAssetExecutions(ctx context.Context, h *api.HTTPAPI, assetID string, opts GetAssetExecutionsOpts) (models.ListWithCount[any], error) {
+	var executions models.ListWithCount[any]
 
 	endpoint := fmt.Sprintf("%s/%s/executions", AssetsV2URI, assetID)
 	params := map[string][]string{

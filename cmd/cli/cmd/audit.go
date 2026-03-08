@@ -2,20 +2,23 @@ package cmd
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
 	"fmt"
-	"strconv"
 	"strings"
-	"time"
 
 	"github.com/fourcorelabs/attack-sdk-go/pkg/api"
 	pkgAuditLog "github.com/fourcorelabs/attack-sdk-go/pkg/auditlog" // Alias to avoid collision
-	"github.com/fourcorelabs/attack-sdk-go/pkg/models"
 	"github.com/fourcorelabs/attack-sdk-go/pkg/models/auditlog"
-	"github.com/rodaine/table"
 	"github.com/spf13/cobra"
 )
+
+type auditViewItem struct {
+	log auditlog.AuditLog
+}
+
+func (i auditViewItem) Transform() (any, error) {
+	return auditlog.AuditLogExpanded(i.log), nil
+}
 
 // auditCmd represents the audit command
 var auditCmd = &cobra.Command{
@@ -69,16 +72,9 @@ var auditListCmd = &cobra.Command{
 			return fmt.Errorf("failed to retrieve audit logs: %w", err)
 		}
 
-		// --- Output ---
-		switch strings.ToLower(format) {
-		case "json":
-			return printAuditLogsJSON(logs)
-		case "table":
-			fallthrough // Default to table
-		default:
-			printAuditLogsTable(logs)
-			return nil
-		}
+		return outputPaginatedItems(cmd, format, "", false, logs, func(item auditlog.AuditLog) auditViewItem {
+			return auditViewItem{log: item}
+		}, "No audit logs found matching the criteria.", "Total Rows")
 	},
 }
 
@@ -92,63 +88,4 @@ func init() {
 	// --- Add Commands ---
 	auditCmd.AddCommand(auditListCmd) // Add 'list' to 'audit'
 	rootCmd.AddCommand(auditCmd)      // Add 'audit' to the root command
-}
-
-// --- Helper Functions (specific to audit command output) ---
-
-func printAuditLogsTable(logs models.PaginationResponse[auditlog.AuditLog]) {
-	if logs.TotalRows == 0 || len(logs.Data) == 0 {
-		fmt.Println("No audit logs found matching the criteria.")
-		return
-	}
-
-	fmt.Printf("Total Rows: %d\n", logs.TotalRows) // Keep total rows info
-
-	// Create a new table with headers
-	// Note: rodaine/table automatically prints to os.Stdout by default
-	tbl := table.New("Time", "Source IP", "Actor", "Action", "Endpoint", "Organization")
-
-	// Optional: Customize table appearance (check rodaine/table docs for options)
-	// Example: tbl.WithHeaderFormatter(...)
-	// Example: tbl.WithPadding(...)
-	// Example: table.DefaultHeaderFormatter = ... (for global changes)
-
-	for _, log := range logs.Data {
-		timeStr := "N/A"
-		if log.CreatedAt != nil {
-			timeStr = log.CreatedAt.Format(time.RFC3339)
-		}
-
-		actor := log.Actor.Email
-		if actor == "" {
-			actor = maskString(log.Actor.ApiKey)
-		}
-		if actor == "" {
-			actor = "System/Unknown"
-		}
-
-		orgStr := log.OrgName + " (" + strconv.FormatUint(uint64(log.OrgID), 10) + ")"
-
-		// Add row data - arguments must match the order of headers in table.New
-		tbl.AddRow(
-			timeStr,
-			log.SourceIP,
-			actor,
-			log.Action,
-			log.Endpoint,
-			orgStr,
-		)
-	}
-
-	// Print the table to stdout
-	tbl.Print()
-}
-
-func printAuditLogsJSON(logs models.PaginationResponse[auditlog.AuditLog]) error {
-	jsonData, err := json.MarshalIndent(logs, "", "  ")
-	if err != nil {
-		return fmt.Errorf("failed to format JSON output: %w", err)
-	}
-	fmt.Println(string(jsonData))
-	return nil
 }

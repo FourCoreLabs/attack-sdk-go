@@ -49,6 +49,7 @@ func ListEndpointActions(ctx context.Context, h *api.HTTPAPI, opts ListEndpointA
 	params := url.Values{
 		"size":   []string{strconv.FormatInt(int64(opts.Size), 10)},
 		"offset": []string{strconv.FormatInt(int64(opts.Offset), 10)},
+		"order":  []string{"-release_date"},
 	}
 
 	if !opts.StartReleaseDate.IsZero() {

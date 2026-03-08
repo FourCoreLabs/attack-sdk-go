@@ -2,7 +2,6 @@ package cmd
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"maps"
@@ -16,9 +15,24 @@ import (
 	"github.com/fourcorelabs/attack-sdk-go/pkg/models"
 	modelActions "github.com/fourcorelabs/attack-sdk-go/pkg/models/actions"
 	"github.com/fourcorelabs/attack-sdk-go/pkg/models/chains"
-	"github.com/rodaine/table"
 	"github.com/spf13/cobra"
 )
+
+type chainViewItem struct {
+	chain chains.ChainForUserState
+}
+
+func (i chainViewItem) Transform() (any, error) {
+	return chains.ChainExpanded(i.chain), nil
+}
+
+type actionViewItem struct {
+	action modelActions.ActionForUserState
+}
+
+func (i actionViewItem) Transform() (any, error) {
+	return modelActions.ActionExpanded(i.action), nil
+}
 
 // listCmd represents the content listing command
 var listCmd = &cobra.Command{
@@ -51,6 +65,7 @@ var chainListCmd = &cobra.Command{
 		offset, _ := cmd.Flags().GetInt("offset")
 		order, _ := cmd.Flags().GetStringSlice("order")
 		format, _ := cmd.Flags().GetString("format")
+		mode, _ := cmd.Flags().GetString("mode")
 		startReleaseDate, _ := cmd.Flags().GetString("start_release_date")
 		endReleaseDate, _ := cmd.Flags().GetString("end_release_date")
 		startLastRunAt, _ := cmd.Flags().GetString("start_last_run_at")
@@ -110,7 +125,7 @@ var chainListCmd = &cobra.Command{
 		}
 
 		// --- API Call ---
-		chains, err := pkgChains.ListEndpointChains(context.Background(), client, opts)
+		chainRes, err := pkgChains.ListEndpointChains(context.Background(), client, opts)
 		if err != nil {
 			if errors.Is(err, api.ErrApiKeyInvalid) {
 				return fmt.Errorf("API request failed: Invalid API Key")
@@ -122,16 +137,9 @@ var chainListCmd = &cobra.Command{
 			return fmt.Errorf("failed to retrieve chains: %w", err)
 		}
 
-		// --- Output ---
-		switch strings.ToLower(format) {
-		case "json":
-			return printEndpointChainsJSON(chains)
-		case "table":
-			fallthrough
-		default:
-			printEndpointChainsTable(chains)
-			return nil
-		}
+		return outputPaginatedItems(cmd, format, mode, cmd.Flags().Changed("mode"), chainRes, func(item chains.ChainForUserState) chainViewItem {
+			return chainViewItem{chain: item}
+		}, "No chains found matching the criteria.", "Total Chains")
 	},
 }
 
@@ -153,6 +161,7 @@ var actionListCmd = &cobra.Command{
 		size, _ := cmd.Flags().GetInt("size")
 		offset, _ := cmd.Flags().GetInt("offset")
 		format, _ := cmd.Flags().GetString("format")
+		mode, _ := cmd.Flags().GetString("mode")
 		startReleaseDate, _ := cmd.Flags().GetString("start_release_date")
 		endReleaseDate, _ := cmd.Flags().GetString("end_release_date")
 		platforms, _ := cmd.Flags().GetStringSlice("platform")
@@ -200,7 +209,7 @@ var actionListCmd = &cobra.Command{
 			}
 		}
 
-		actions, err := pkgActions.ListEndpointActions(context.Background(), client, opts)
+		actionRes, err := pkgActions.ListEndpointActions(context.Background(), client, opts)
 		if err != nil {
 			if errors.Is(err, api.ErrApiKeyInvalid) {
 				return fmt.Errorf("API request failed: Invalid API Key")
@@ -212,15 +221,9 @@ var actionListCmd = &cobra.Command{
 			return fmt.Errorf("failed to retrieve actions: %w", err)
 		}
 
-		switch strings.ToLower(format) {
-		case "json":
-			return printEndpointActionsJSON(actions)
-		case "table":
-			fallthrough
-		default:
-			printEndpointActionsTable(actions)
-			return nil
-		}
+		return outputPaginatedItems(cmd, format, mode, cmd.Flags().Changed("mode"), actionRes, func(item modelActions.ActionForUserState) actionViewItem {
+			return actionViewItem{action: item}
+		}, "No actions found matching the criteria.", "Total Actions")
 	},
 }
 
@@ -234,6 +237,7 @@ func init() {
 	chainListCmd.Flags().IntP("offset", "o", 0, "Offset for pagination")
 	chainListCmd.Flags().StringSliceP("order", "r", []string{"-" + string(pkgChains.ListEndpointChainOrderbyReleaseDate)}, fmt.Sprintf("Order of chains (%s)", strings.Join(validOrders, ", ")))
 	chainListCmd.Flags().StringP("format", "f", "table", "Output format (table, json)")
+	chainListCmd.Flags().String("mode", "", "Output mode (summary, expanded). Defaults: table=summary, json=expanded")
 	chainListCmd.Flags().String("start_release_date", "", "Set filter on starting of release date")
 	chainListCmd.Flags().String("end_release_date", "", "Set filter on ending of release date")
 	chainListCmd.Flags().String("start_last_run_at", "", "Set filter on starting of last running date")
@@ -247,6 +251,7 @@ func init() {
 	actionListCmd.Flags().IntP("size", "s", 10, "Number of actions to retrieve")
 	actionListCmd.Flags().IntP("offset", "o", 0, "Offset for pagination")
 	actionListCmd.Flags().StringP("format", "f", "table", "Output format (table, json)")
+	actionListCmd.Flags().String("mode", "", "Output mode (summary, expanded). Defaults: table=summary, json=expanded")
 	actionListCmd.Flags().String("start_release_date", "", "Set filter on starting of release date")
 	actionListCmd.Flags().String("end_release_date", "", "Set filter on ending of release date")
 	actionListCmd.Flags().StringSlice("platform", nil, "Set filter on type of platforms")
@@ -258,109 +263,4 @@ func init() {
 	listCmd.AddCommand(chainListCmd)
 	listCmd.AddCommand(actionListCmd)
 	rootCmd.AddCommand(listCmd)
-}
-
-func printEndpointChainsJSON(chains models.PaginationResponse[chains.ChainForUserState]) error {
-	jsonData, err := json.MarshalIndent(chains, "", "  ")
-	if err != nil {
-		return fmt.Errorf("failed to format JSON output: %w", err)
-	}
-	fmt.Println(string(jsonData))
-	return nil
-}
-
-func printEndpointChainsTable(chains models.PaginationResponse[chains.ChainForUserState]) {
-	if len(chains.Data) == 0 {
-		fmt.Println("No chains found matching the criteria.")
-		return
-	}
-
-	fmt.Printf("Total Chains: %d\n\n", chains.TotalRows)
-
-	// Create a new table with headers
-	tbl := table.New("ID", "Name", "Platforms", "Blocked Rate", "Success Rate", "Detection Rate", "Released At", "Last Executed At")
-
-	for _, chain := range chains.Data {
-		var (
-			blockedRate   = "0%"
-			successRate   = "0%"
-			detectionRate = "0%"
-		)
-
-		if chain.Total > 0 {
-			// Format detection rate as percentage
-			detectionRate = fmt.Sprintf("%.1f%%", float64(chain.Detected*100)/float64(chain.Total))
-			successRate = fmt.Sprintf("%.1f%%", float64(chain.Success*100)/float64(chain.Total))
-			blockedRate = fmt.Sprintf("%.1f%%", float64((chain.Total-chain.Success)*100)/float64(chain.Total))
-		}
-
-		// Format created at
-		releasedAt := "N/A"
-		if !chain.ReleaseDate.IsZero() {
-			releasedAt = chain.ReleaseDate.Format(time.RFC3339)
-		}
-
-		lastExecutedAt := "N/A"
-		if chain.LastRunAt != nil && !chain.LastRunAt.IsZero() {
-			lastExecutedAt = chain.LastRunAt.Format(time.RFC3339)
-		}
-
-		// Add row data
-		tbl.AddRow(
-			chain.ID,
-			chain.Name,
-			strings.Join(chain.Platforms, ", "),
-			blockedRate,
-			successRate,
-			detectionRate,
-			releasedAt,
-			lastExecutedAt,
-		)
-	}
-
-	// Print the table to stdout
-	tbl.Print()
-}
-
-func printEndpointActionsJSON(actions models.PaginationResponse[modelActions.ActionForUserState]) error {
-	jsonData, err := json.MarshalIndent(actions, "", "  ")
-	if err != nil {
-		return fmt.Errorf("failed to format JSON output: %w", err)
-	}
-	fmt.Println(string(jsonData))
-	return nil
-}
-
-func printEndpointActionsTable(actions models.PaginationResponse[modelActions.ActionForUserState]) {
-	if len(actions.Data) == 0 {
-		fmt.Println("No actions found matching the criteria.")
-		return
-	}
-
-	fmt.Printf("Total Actions: %d\n\n", actions.TotalRows)
-
-	tbl := table.New("ID", "Name", "Type", "Severity", "Platforms", "Released At")
-
-	for _, action := range actions.Data {
-		releasedAt := "N/A"
-		if !action.ReleaseDate.IsZero() {
-			releasedAt = action.ReleaseDate.Format(time.RFC3339)
-		}
-
-		platforms := make([]string, 0, len(action.Platforms))
-		for _, platform := range action.Platforms {
-			platforms = append(platforms, platform)
-		}
-
-		tbl.AddRow(
-			action.ID,
-			action.Name,
-			action.Type,
-			action.Severity,
-			strings.Join(platforms, ", "),
-			releasedAt,
-		)
-	}
-
-	tbl.Print()
 }

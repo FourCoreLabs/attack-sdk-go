@@ -121,8 +121,8 @@ func NewHTTPAPI(baseURL, apiKey string, client ...*http.Client) (*HTTPAPI, error
 	}, nil
 }
 
-// SetRateLimit updates the rate limiter with a new limit
-func (g *HTTPAPI) SetRateLimit(requestsPerMinute int) {
+// setRateLimit updates the rate limiter with a new limit
+func (g *HTTPAPI) setRateLimit(requestsPerMinute int) {
 	g.rateLimiter = NewRateLimiter(requestsPerMinute)
 }
 
@@ -146,6 +146,11 @@ type APIError struct {
 	Errors []ErrorItem `json:"errors,omitempty" xml:"errors,omitempty"`
 }
 
+type ForbiddenError struct {
+	Code  int    `json:"code"`
+	Error string `json:"error"`
+}
+
 func (a *APIError) GetError() ErrorItem {
 	return ErrorItem{
 		Name:   a.Title,
@@ -165,7 +170,7 @@ type ReqOptions struct {
 	Headers url.Values
 }
 
-func (g *HTTPAPI) Req(ctx context.Context, method string, uri string, postBody []byte, isJSON bool, options ...ReqOptions) ([]byte, int, string, error) {
+func (g *HTTPAPI) req(ctx context.Context, method string, uri string, postBody []byte, isJSON bool, options ...ReqOptions) ([]byte, int, string, error) {
 	return g.reqBase(ctx, g.baseURL, method, uri, postBody, isJSON, options...)
 }
 
@@ -276,7 +281,7 @@ func (g *HTTPAPI) reqBase(ctx context.Context, base *url.URL, method string, uri
 	if response.StatusCode == http.StatusTooManyRequests {
 		// Update rate limiter if we get new limit information
 		if rateInfo.Limit > 0 && rateInfo.Limit != g.rateLimiter.limit {
-			g.SetRateLimit(rateInfo.Limit)
+			g.setRateLimit(rateInfo.Limit)
 		}
 
 		// If there's a retry-after header, return appropriate error
@@ -292,19 +297,37 @@ func (g *HTTPAPI) reqBase(ctx context.Context, base *url.URL, method string, uri
 	return body, response.StatusCode, response.Header.Get("Content-Type"), err
 }
 
-func (g *HTTPAPI) ReqBuf(ctx context.Context, method string, uri string, buf []byte, dest interface{}, options ...ReqOptions) (interface{}, error) {
-	body, statusCode, _, err := g.Req(ctx, method, uri, buf, true, options...)
+func (g *HTTPAPI) reqBuf(ctx context.Context, method string, uri string, buf []byte, dest interface{}, options ...ReqOptions) (interface{}, error) {
+	body, statusCode, _, err := g.req(ctx, method, uri, buf, true, options...)
 	if err != nil {
 		return nil, err
 	}
 
 	switch statusCode {
+	case http.StatusForbidden:
+		var message ForbiddenError
+		if err := json.Unmarshal(body, &message); err != nil {
+			return nil, ErrApiKeyInvalid
+		}
+
+		return nil, fmt.Errorf("%v: %v", message.Code, message.Error)
+
+	case http.StatusUnauthorized:
+		var message APIError
+		if err := json.Unmarshal(body, &message); err != nil {
+			return nil, ErrApiKeyInvalid
+		}
+		apiErr := message.GetError()
+
+		return nil, fmt.Errorf("%v: %v", apiErr.Name, apiErr.Reason)
+
 	case http.StatusOK, http.StatusCreated:
 		if err := json.Unmarshal(body, dest); err != nil {
 			return nil, err
 		}
 
 		return dest, nil
+
 	case http.StatusBadRequest:
 		var message APIError
 		if err := json.Unmarshal(body, &message); err != nil {
@@ -314,6 +337,7 @@ func (g *HTTPAPI) ReqBuf(ctx context.Context, method string, uri string, buf []b
 		apiErr := message.GetError()
 
 		return nil, fmt.Errorf("%v: %v", apiErr.Name, apiErr.Reason)
+
 	case http.StatusNotFound:
 		var message APIError
 		if err := json.Unmarshal(body, &message); err != nil {
@@ -322,14 +346,7 @@ func (g *HTTPAPI) ReqBuf(ctx context.Context, method string, uri string, buf []b
 		apiErr := message.GetError()
 
 		return nil, fmt.Errorf("%v: %v", apiErr.Name, apiErr.Reason)
-	case http.StatusUnauthorized:
-		var message APIError
-		if err := json.Unmarshal(body, &message); err != nil {
-			return nil, ErrApiKeyInvalid
-		}
-		apiErr := message.GetError()
 
-		return nil, fmt.Errorf("%v: %v", apiErr.Name, apiErr.Reason)
 	case http.StatusTooManyRequests:
 		var message APIError
 		if err := json.Unmarshal(body, &message); err != nil {
@@ -338,6 +355,7 @@ func (g *HTTPAPI) ReqBuf(ctx context.Context, method string, uri string, buf []b
 		apiErr := message.GetError()
 
 		return nil, fmt.Errorf("%v: %v", apiErr.Name, apiErr.Reason)
+
 	default:
 		var message APIError
 		if err := json.Unmarshal(body, &message); err != nil {
@@ -361,7 +379,7 @@ func (g *HTTPAPI) ReqJSON(ctx context.Context, method string, uri string, post i
 		}
 	}
 
-	msg, err := g.ReqBuf(ctx, method, uri, buf, dest, options...)
+	msg, err := g.reqBuf(ctx, method, uri, buf, dest, options...)
 	if err != nil {
 		return msg, err
 	}

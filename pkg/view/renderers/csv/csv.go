@@ -9,11 +9,18 @@ import (
 
 type csvRenderer struct{}
 
+var _ renderers.Renderer = (*csvRenderer)(nil)
+
 func NewCsvRender() renderers.Renderer {
 	return &csvRenderer{}
 }
 
-func (r *csvRenderer) Render(w io.Writer, items []any) error {
+func (r *csvRenderer) Render(w io.Writer, items []any, opts ...renderers.RendererOptFunc) error {
+	opt := renderers.RendererOption{}
+	for _, fn := range opts {
+		fn(&opt)
+	}
+
 	headers, records, err := renderers.BuildRecords(items)
 	if err != nil {
 		return err

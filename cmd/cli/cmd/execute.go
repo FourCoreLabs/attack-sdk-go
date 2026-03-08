@@ -2,10 +2,8 @@ package cmd
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
 	"fmt"
-	"os"
 	"strings"
 
 	"github.com/spf13/cobra"
@@ -308,20 +306,14 @@ func init() {
 
 // printExecutionDetails prints the details of a GetExecutionResponse in JSON format.
 func printExecutionDetails(execution models.GetExecutionResponse) {
-	details, err := json.MarshalIndent(execution, "", "  ")
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "Error marshalling execution details: %v\n", err)
-		return
+	if err := printJSON(rootCmd.OutOrStdout(), execution); err != nil {
+		fmt.Fprintf(rootCmd.ErrOrStderr(), "Error marshalling execution details: %v\n", err)
 	}
-	fmt.Println(string(details))
 }
 
 // printAttackExecutionDetails prints the details of an AttackExecution in JSON format.
 func printAttackExecutionDetails(execution models.AttackExecution) {
-	details, err := json.MarshalIndent(execution, "", "  ")
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "Error marshalling execution details: %v\n", err)
-		return
+	if err := printJSON(rootCmd.OutOrStdout(), execution); err != nil {
+		fmt.Fprintf(rootCmd.ErrOrStderr(), "Error marshalling execution details: %v\n", err)
 	}
-	fmt.Println(string(details))
 }

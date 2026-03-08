@@ -10,8 +10,22 @@ import (
 	"time"
 )
 
+type RendererOption struct {
+	// only render 0th index element and make it composed into column.
+	// useful when there is only one element and we need to render object.
+	SingleElemAndCompose bool
+}
+
+type RendererOptFunc func(*RendererOption)
+
+func SingleElemAndComposeOption() RendererOptFunc {
+	return func(ro *RendererOption) {
+		ro.SingleElemAndCompose = true
+	}
+}
+
 type Renderer interface {
-	Render(w io.Writer, items []any) error
+	Render(w io.Writer, items []any, opts ...RendererOptFunc) error
 }
 
 func BuildRecords(items []any) ([]string, []map[string]any, error) {
@@ -20,7 +34,7 @@ func BuildRecords(items []any) ([]string, []map[string]any, error) {
 	records := make([]map[string]any, 0, len(items))
 
 	for _, item := range items {
-		rec, cols, err := toRecord(item)
+		cols, rec, err := RecordItem(item)
 		if err != nil {
 			return nil, nil, err
 		}
@@ -39,15 +53,15 @@ func BuildRecords(items []any) ([]string, []map[string]any, error) {
 	return headers, records, nil
 }
 
-func toRecord(item any) (map[string]any, []string, error) {
+func RecordItem(item any) ([]string, map[string]any, error) {
 	if item == nil {
-		return map[string]any{"value": nil}, []string{"value"}, nil
+		return []string{"value"}, map[string]any{"value": nil}, nil
 	}
 
 	rv := reflect.ValueOf(item)
 	for rv.Kind() == reflect.Pointer {
 		if rv.IsNil() {
-			return map[string]any{"value": nil}, []string{"value"}, nil
+			return []string{"value"}, map[string]any{"value": nil}, nil
 		}
 		rv = rv.Elem()
 	}
@@ -55,12 +69,12 @@ func toRecord(item any) (map[string]any, []string, error) {
 	switch rv.Kind() {
 	case reflect.Struct:
 		rec, headers := structRecord(rv)
-		return rec, headers, nil
+		return headers, rec, nil
 	case reflect.Map:
 		rec, headers := mapRecord(rv)
-		return rec, headers, nil
+		return headers, rec, nil
 	default:
-		return map[string]any{"value": item}, []string{"value"}, nil
+		return []string{"value"}, map[string]any{"value": item}, nil
 	}
 }
 
