@@ -2,7 +2,6 @@ package cmd
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"strings"
@@ -15,6 +14,14 @@ import (
 	"github.com/rodaine/table"
 	"github.com/spf13/cobra"
 )
+
+type assetViewItem struct {
+	asset asset.Asset
+}
+
+func (i assetViewItem) Transform() (any, error) {
+	return asset.AssetExpanded(i.asset), nil
+}
 
 // assetCmd represents the asset command
 var assetCmd = &cobra.Command{
@@ -64,16 +71,9 @@ var assetListCmd = &cobra.Command{
 			return fmt.Errorf("failed to retrieve assets: %w", err)
 		}
 
-		// --- Output ---
-		switch strings.ToLower(format) {
-		case "json":
-			return printAssetsJSON(assets)
-		case "table":
-			fallthrough // Default to table
-		default:
-			printAssetsTable(assets)
-			return nil
-		}
+		return outputItems(cmd, format, "", false, assets, func(item asset.Asset) assetViewItem {
+			return assetViewItem{asset: item}
+		}, "No assets found.")
 	},
 }
 
@@ -119,7 +119,7 @@ var assetGetCmd = &cobra.Command{
 		// --- Output ---
 		switch strings.ToLower(format) {
 		case "json":
-			return printAssetJSON(asset)
+			return printJSON(cmd.OutOrStdout(), asset)
 		default:
 			printAssetDetails(asset)
 			return nil
@@ -328,7 +328,7 @@ var assetTagsCmd = &cobra.Command{
 		}
 
 		// Start with the current tags or an empty map
-		newTags := make(map[string]string)
+		newTags := make(map[string]any)
 		if !clear {
 			for k, v := range asset.Tags {
 				newTags[k] = v
@@ -404,12 +404,7 @@ var assetAnalyticsCmd = &cobra.Command{
 		// --- Output ---
 		switch strings.ToLower(format) {
 		case "json":
-			data, err := json.MarshalIndent(analytics, "", "  ")
-			if err != nil {
-				return fmt.Errorf("failed to format JSON output: %w", err)
-			}
-			fmt.Println(string(data))
-			return nil
+			return printJSON(cmd.OutOrStdout(), analytics)
 		default:
 			printAssetAnalytics(analytics)
 			return nil
@@ -466,12 +461,7 @@ var assetAttacksCmd = &cobra.Command{
 		// --- Output ---
 		switch strings.ToLower(format) {
 		case "json":
-			data, err := json.MarshalIndent(attacks, "", "  ")
-			if err != nil {
-				return fmt.Errorf("failed to format JSON output: %w", err)
-			}
-			fmt.Println(string(data))
-			return nil
+			return printJSON(cmd.OutOrStdout(), attacks)
 		default:
 			printAssetAttacks(attacks)
 			return nil
@@ -528,12 +518,7 @@ var assetExecutionsCmd = &cobra.Command{
 		// --- Output ---
 		switch strings.ToLower(format) {
 		case "json":
-			data, err := json.MarshalIndent(executions, "", "  ")
-			if err != nil {
-				return fmt.Errorf("failed to format JSON output: %w", err)
-			}
-			fmt.Println(string(data))
-			return nil
+			return printJSON(cmd.OutOrStdout(), executions)
 		default:
 			printAssetExecutions(executions)
 			return nil
@@ -590,12 +575,7 @@ var assetPacksCmd = &cobra.Command{
 		// --- Output ---
 		switch strings.ToLower(format) {
 		case "json":
-			data, err := json.MarshalIndent(packs, "", "  ")
-			if err != nil {
-				return fmt.Errorf("failed to format JSON output: %w", err)
-			}
-			fmt.Println(string(data))
-			return nil
+			return printJSON(cmd.OutOrStdout(), packs)
 		default:
 			printAssetPacks(packs)
 			return nil
@@ -687,24 +667,6 @@ func printAssetsTable(assets []asset.Asset) {
 
 	// Print the table to stdout
 	tbl.Print()
-}
-
-func printAssetsJSON(assets []asset.Asset) error {
-	jsonData, err := json.MarshalIndent(assets, "", "  ")
-	if err != nil {
-		return fmt.Errorf("failed to format JSON output: %w", err)
-	}
-	fmt.Println(string(jsonData))
-	return nil
-}
-
-func printAssetJSON(asset asset.Asset) error {
-	jsonData, err := json.MarshalIndent(asset, "", "  ")
-	if err != nil {
-		return fmt.Errorf("failed to format JSON output: %w", err)
-	}
-	fmt.Println(string(jsonData))
-	return nil
 }
 
 func printAssetDetails(asset asset.Asset) {
@@ -824,7 +786,7 @@ func printAssetAnalytics(analytics asset.AssetAnalytics) {
 	}
 }
 
-func printAssetAttacks(attacks models.ListWithCount) {
+func printAssetAttacks(attacks models.ListWithCount[any]) {
 	if attacks.Count == 0 || len(attacks.Data) == 0 {
 		fmt.Println("No attacks found for this asset.")
 		return
@@ -867,7 +829,7 @@ func printAssetAttacks(attacks models.ListWithCount) {
 	tbl.Print()
 }
 
-func printAssetExecutions(executions models.ListWithCount) {
+func printAssetExecutions(executions models.ListWithCount[any]) {
 	if executions.Count == 0 || len(executions.Data) == 0 {
 		fmt.Println("No executions found for this asset.")
 		return

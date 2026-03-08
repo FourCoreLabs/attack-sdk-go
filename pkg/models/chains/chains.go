@@ -1,6 +1,8 @@
 package chains
 
 import (
+	"fmt"
+	"strings"
 	"time"
 
 	"github.com/fourcorelabs/attack-sdk-go/pkg/models"
@@ -55,4 +57,50 @@ type ChainForUserState struct {
 	Techniques []models.MitreTacticTechnique `json:"techniques"`
 
 	ThreatIntel []threatintel.ThreatIntel `json:"threat_intel"`
+}
+
+type ChainSummary struct {
+	ID             string `json:"id"`
+	Name           string `json:"name"`
+	Platforms      string `json:"platforms"`
+	BlockedRate    string `json:"blocked_rate"`
+	SuccessRate    string `json:"success_rate"`
+	DetectionRate  string `json:"detection_rate"`
+	ReleasedAt     string `json:"released_at"`
+	LastExecutedAt string `json:"last_executed_at"`
+}
+
+type ChainExpanded ChainForUserState
+
+func (c ChainExpanded) Summary() (any, error) {
+	blockedRate := "0%"
+	successRate := "0%"
+	detectionRate := "0%"
+
+	if c.Total > 0 {
+		detectionRate = fmt.Sprintf("%.1f%%", float64(c.Detected*100)/float64(c.Total))
+		successRate = fmt.Sprintf("%.1f%%", float64(c.Success*100)/float64(c.Total))
+		blockedRate = fmt.Sprintf("%.1f%%", float64((c.Total-c.Success)*100)/float64(c.Total))
+	}
+
+	releasedAt := "N/A"
+	if !c.ReleaseDate.IsZero() {
+		releasedAt = c.ReleaseDate.Format(time.RFC3339)
+	}
+
+	lastExecutedAt := "N/A"
+	if c.LastRunAt != nil && !c.LastRunAt.IsZero() {
+		lastExecutedAt = c.LastRunAt.Format(time.RFC3339)
+	}
+
+	return ChainSummary{
+		ID:             c.ID,
+		Name:           c.Name,
+		Platforms:      strings.Join(c.Platforms, ", "),
+		BlockedRate:    blockedRate,
+		SuccessRate:    successRate,
+		DetectionRate:  detectionRate,
+		ReleasedAt:     releasedAt,
+		LastExecutedAt: lastExecutedAt,
+	}, nil
 }

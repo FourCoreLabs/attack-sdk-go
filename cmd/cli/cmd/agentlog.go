@@ -2,7 +2,6 @@ package cmd
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"strings"
@@ -10,11 +9,17 @@ import (
 
 	pkgAgentLog "github.com/fourcorelabs/attack-sdk-go/pkg/agentlog" // Alias to avoid collision
 	"github.com/fourcorelabs/attack-sdk-go/pkg/api"
-	"github.com/fourcorelabs/attack-sdk-go/pkg/models"
 	"github.com/fourcorelabs/attack-sdk-go/pkg/models/agentlog"
-	"github.com/rodaine/table"
 	"github.com/spf13/cobra"
 )
+
+type agentLogViewItem struct {
+	log agentlog.AgentLog
+}
+
+func (i agentLogViewItem) Transform() (any, error) {
+	return agentlog.AgentLogExpanded(i.log), nil
+}
 
 // agentCmd represents the agent command
 var agentCmd = &cobra.Command{
@@ -100,16 +105,9 @@ var agentLogListCmd = &cobra.Command{
 			return fmt.Errorf("failed to retrieve agent logs: %w", err)
 		}
 
-		// --- Output ---
-		switch strings.ToLower(format) {
-		case "json":
-			return printAgentLogsJSON(logs)
-		case "table":
-			fallthrough // Default to table
-		default:
-			printAgentLogsTable(logs)
-			return nil
-		}
+		return outputPaginatedItems(cmd, format, "", false, logs, func(item agentlog.AgentLog) agentLogViewItem {
+			return agentLogViewItem{log: item}
+		}, "No agent logs found matching the criteria.", "Total Rows")
 	},
 }
 
@@ -129,60 +127,4 @@ func init() {
 	agentLogCmd.AddCommand(agentLogListCmd) // Add 'list' to 'agent log'
 	agentCmd.AddCommand(agentLogCmd)        // Add 'log' to 'agent'
 	rootCmd.AddCommand(agentCmd)            // Add 'agent' to the root command
-}
-
-// --- Helper Functions (specific to agent log command output) ---
-
-func printAgentLogsTable(logs models.PaginationResponse[agentlog.AgentLog]) {
-	if logs.TotalRows == 0 || len(logs.Data) == 0 {
-		fmt.Println("No agent logs found matching the criteria.")
-		return
-	}
-
-	fmt.Printf("Total Rows: %d\n", logs.TotalRows) // Keep total rows info
-
-	// Create a new table with headers
-	tbl := table.New("Time", "Asset ID", "Hostname", "Action", "Message", "Data")
-
-	for _, log := range logs.Data {
-		timeStr := "N/A"
-		if log.CreatedAt != nil {
-			timeStr = log.CreatedAt.Format(time.RFC3339)
-		}
-
-		// Truncate message if it's too long for display
-		message := log.Message
-		if len(message) > 50 {
-			message = message[:47] + "..."
-		}
-
-		var dataJsonStr string
-		if log.Data != nil {
-			if data, err := json.Marshal(log.Data); err == nil {
-				dataJsonStr = string(data)
-			}
-		}
-
-		// Add row data - arguments must match the order of headers in table.New
-		tbl.AddRow(
-			timeStr,
-			log.AssetID,
-			log.Hostname,
-			log.Action,
-			message,
-			dataJsonStr,
-		)
-	}
-
-	// Print the table to stdout
-	tbl.Print()
-}
-
-func printAgentLogsJSON(logs models.PaginationResponse[agentlog.AgentLog]) error {
-	jsonData, err := json.MarshalIndent(logs, "", "  ")
-	if err != nil {
-		return fmt.Errorf("failed to format JSON output: %w", err)
-	}
-	fmt.Println(string(jsonData))
-	return nil
 }

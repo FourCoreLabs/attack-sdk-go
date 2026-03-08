@@ -2,7 +2,6 @@ package cmd
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"strings"
@@ -10,9 +9,16 @@ import (
 	"github.com/fourcorelabs/attack-sdk-go/pkg/api"
 	pkgMitre "github.com/fourcorelabs/attack-sdk-go/pkg/mitre"
 	"github.com/fourcorelabs/attack-sdk-go/pkg/models/mitre"
-	"github.com/rodaine/table"
 	"github.com/spf13/cobra"
 )
+
+type mitreCoverageViewItem struct {
+	item mitre.MitreTacticTechniqueWithActionAndStagers
+}
+
+func (i mitreCoverageViewItem) Transform() (any, error) {
+	return mitre.CoverageExpanded(i.item), nil
+}
 
 // mitreCmd represents the mitre command
 var mitreCmd = &cobra.Command{
@@ -55,16 +61,23 @@ var mitreCoverageCmd = &cobra.Command{
 			return fmt.Errorf("failed to retrieve MITRE ATT&CK coverage: %w", err)
 		}
 
-		// --- Output ---
-		switch strings.ToLower(format) {
-		case "json":
-			return printMitreCoverageJSON(coverage)
-		case "table":
-			fallthrough
-		default:
-			printMitreCoverageTable(coverage)
+		if !strings.EqualFold(format, "json") && len(coverage) > 0 {
+			if _, err := fmt.Fprintf(cmd.OutOrStdout(), "MITRE ATT&CK Coverage (%d techniques)\n\n", len(coverage)); err != nil {
+				return err
+			}
+		}
+
+		if err := outputItems(cmd, format, "", false, coverage, func(item mitre.MitreTacticTechniqueWithActionAndStagers) mitreCoverageViewItem {
+			return mitreCoverageViewItem{item: item}
+		}, "No MITRE ATT&CK coverage data found."); err != nil {
+			return err
+		}
+
+		if strings.EqualFold(format, "json") {
 			return nil
 		}
+
+		return printMitreCoverageStats(coverage)
 	},
 }
 
@@ -111,7 +124,7 @@ var mitreTechniqueCmd = &cobra.Command{
 		// --- Output ---
 		switch strings.ToLower(format) {
 		case "json":
-			return printMitreTechniqueJSON(technique)
+			return printJSON(cmd.OutOrStdout(), technique)
 		default:
 			printMitreTechniqueDetails(technique)
 			return nil
@@ -140,53 +153,11 @@ func init() {
 
 // --- Helper Functions for Output Formatting ---
 
-func printMitreCoverageTable(coverage []mitre.MitreTacticTechniqueWithActionAndStagers) {
-	if len(coverage) == 0 {
-		fmt.Println("No MITRE ATT&CK coverage data found.")
-		return
+func printMitreCoverageStats(coverage []mitre.MitreTacticTechniqueWithActionAndStagers) error {
+	if _, err := fmt.Fprintf(rootCmd.OutOrStdout(), "\nSummary:\n"); err != nil {
+		return err
 	}
 
-	fmt.Printf("MITRE ATT&CK Coverage (%d techniques)\n\n", len(coverage))
-
-	// Create a new table with headers
-	tbl := table.New("Technique ID", "Tactic ID", "Sub-Technique", "Total", "Success", "Detected", "Actions", "Stagers")
-
-	for _, item := range coverage {
-		// Calculate success and detection rates
-		successRate := "0%"
-		detectionRate := "0%"
-		if item.Total > 0 {
-			successRate = fmt.Sprintf("%.1f%%", float64(item.Success)/float64(item.Total)*100)
-			detectionRate = fmt.Sprintf("%.1f%%", float64(item.Detected)/float64(item.Total)*100)
-		}
-
-		// Format technique ID with sub-technique if present
-		techniqueDisplay := item.TechniqueID
-		if item.SubTechniqueID != "" {
-			techniqueDisplay = fmt.Sprintf("%s.%s", item.TechniqueID, item.SubTechniqueID)
-		}
-
-		// Count actions and stagers
-		actionCount := fmt.Sprintf("%d", len(item.Actions))
-		stagerCount := fmt.Sprintf("%d", len(item.Stagers))
-
-		// Add row data
-		tbl.AddRow(
-			techniqueDisplay,
-			item.TacticID,
-			item.SubTechniqueID,
-			fmt.Sprintf("%d", item.Total),
-			successRate,
-			detectionRate,
-			actionCount,
-			stagerCount,
-		)
-	}
-
-	// Print the table to stdout
-	tbl.Print()
-
-	// Print summary statistics
 	var totalExecutions, totalSuccess, totalDetected int64
 	uniqueTechniques := make(map[string]bool)
 	uniqueTactics := make(map[string]bool)
@@ -199,31 +170,24 @@ func printMitreCoverageTable(coverage []mitre.MitreTacticTechniqueWithActionAndS
 		uniqueTactics[item.TacticID] = true
 	}
 
-	fmt.Printf("\nSummary:\n")
-	fmt.Printf("Unique Techniques: %d\n", len(uniqueTechniques))
-	fmt.Printf("Unique Tactics:    %d\n", len(uniqueTactics))
-	fmt.Printf("Total Executions:  %d\n", totalExecutions)
+	if _, err := fmt.Fprintf(rootCmd.OutOrStdout(), "Unique Techniques: %d\n", len(uniqueTechniques)); err != nil {
+		return err
+	}
+	if _, err := fmt.Fprintf(rootCmd.OutOrStdout(), "Unique Tactics:    %d\n", len(uniqueTactics)); err != nil {
+		return err
+	}
+	if _, err := fmt.Fprintf(rootCmd.OutOrStdout(), "Total Executions:  %d\n", totalExecutions); err != nil {
+		return err
+	}
 	if totalExecutions > 0 {
-		fmt.Printf("Success Rate:      %.1f%%\n", float64(totalSuccess)/float64(totalExecutions)*100)
-		fmt.Printf("Detection Rate:    %.1f%%\n", float64(totalDetected)/float64(totalExecutions)*100)
+		if _, err := fmt.Fprintf(rootCmd.OutOrStdout(), "Success Rate:      %.1f%%\n", float64(totalSuccess)/float64(totalExecutions)*100); err != nil {
+			return err
+		}
+		if _, err := fmt.Fprintf(rootCmd.OutOrStdout(), "Detection Rate:    %.1f%%\n", float64(totalDetected)/float64(totalExecutions)*100); err != nil {
+			return err
+		}
 	}
-}
 
-func printMitreCoverageJSON(coverage []mitre.MitreTacticTechniqueWithActionAndStagers) error {
-	jsonData, err := json.MarshalIndent(coverage, "", "  ")
-	if err != nil {
-		return fmt.Errorf("failed to format JSON output: %w", err)
-	}
-	fmt.Println(string(jsonData))
-	return nil
-}
-
-func printMitreTechniqueJSON(technique mitre.MitreTacticTechniqueWithActionAndStagers) error {
-	jsonData, err := json.MarshalIndent(technique, "", "  ")
-	if err != nil {
-		return fmt.Errorf("failed to format JSON output: %w", err)
-	}
-	fmt.Println(string(jsonData))
 	return nil
 }
 

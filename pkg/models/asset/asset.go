@@ -1,28 +1,31 @@
 package asset
 
 import (
+	"fmt"
 	"time"
+
+	"github.com/fourcorelabs/attack-sdk-go/pkg/models"
 )
 
 // Asset represents an endpoint asset in the FourCore platform
 type Asset struct {
-	ID         string            `json:"id"`
-	OrgID      *uint             `json:"org_id,omitempty"`
-	OrgName    *string           `json:"org_name,omitempty"`
-	Available  bool              `json:"available"`
-	Connected  bool              `json:"connected"`
-	Disabled   bool              `json:"disabled"`
-	Elevated   bool              `json:"elevated"`
-	Version    string            `json:"version"`
-	ADUserID   *string           `json:"ad_user_id,omitempty"`
-	APIKey     *string           `json:"apikey,omitempty"`
-	CreatedAt  *time.Time        `json:"created_at,omitempty"`
-	UpdatedAt  *time.Time        `json:"updated_at,omitempty"`
-	DeletedAt  *time.Time        `json:"deleted_at,omitempty"`
-	Tags       map[string]string `json:"tags"`
-	Users      []AssetUser       `json:"users"`
-	EDR        []AssetEDR        `json:"edr"`
-	SystemInfo *AssetSystemInfo  `json:"systeminfo,omitempty"`
+	ID         string           `json:"id"`
+	OrgID      *uint            `json:"org_id,omitempty"`
+	OrgName    *string          `json:"org_name,omitempty"`
+	Available  bool             `json:"available"`
+	Connected  bool             `json:"connected"`
+	Disabled   bool             `json:"disabled"`
+	Elevated   bool             `json:"elevated"`
+	Version    string           `json:"version"`
+	ADUserID   *string          `json:"ad_user_id,omitempty"`
+	APIKey     *string          `json:"apikey,omitempty"`
+	CreatedAt  *time.Time       `json:"created_at,omitempty"`
+	UpdatedAt  *time.Time       `json:"updated_at,omitempty"`
+	DeletedAt  *time.Time       `json:"deleted_at,omitempty"`
+	Tags       models.Tag       `json:"tags"`
+	Users      []AssetUser      `json:"users"`
+	EDR        []AssetEDR       `json:"edr"`
+	SystemInfo *AssetSystemInfo `json:"systeminfo,omitempty"`
 }
 
 // AssetUser represents a user associated with an asset
@@ -110,7 +113,7 @@ type SystemProcess struct {
 
 // AssetTags represents the tags associated with an asset
 type AssetTags struct {
-	Tags map[string]string `json:"tags"`
+	Tags map[string]any `json:"tags"`
 }
 
 // AssetSetTagsResponse represents the response when setting tags
@@ -179,4 +182,57 @@ type GmailConfCode struct {
 	CreatedAt    *time.Time `json:"created_at,omitempty"`
 	UpdatedAt    *time.Time `json:"updated_at,omitempty"`
 	DeletedAt    *time.Time `json:"deleted_at,omitempty"`
+}
+
+type AssetSummary struct {
+	ID        string `json:"id"`
+	Hostname  string `json:"hostname"`
+	IPAddress string `json:"ip_address"`
+	OS        string `json:"os"`
+	Available string `json:"available"`
+	Connected string `json:"connected"`
+	Disabled  string `json:"disabled"`
+}
+
+type AssetExpanded Asset
+
+func (a AssetExpanded) Summary() (any, error) {
+	hostname := "N/A"
+	ipAddr := "N/A"
+	os := "N/A"
+	if a.SystemInfo != nil {
+		hostname = a.SystemInfo.Hostname
+		ipAddr = a.SystemInfo.IPAddr
+		os = a.SystemInfo.OS
+	}
+
+	return AssetSummary{
+		ID:        a.ID,
+		Hostname:  hostname,
+		IPAddress: ipAddr,
+		OS:        os,
+		Available: fmt.Sprintf("%t", a.Available),
+		Connected: fmt.Sprintf("%t", a.Connected),
+		Disabled:  fmt.Sprintf("%t", a.Disabled),
+	}, nil
+}
+
+type EmailAssetSummary struct {
+	ID        string `json:"id"`
+	Email     string `json:"email"`
+	Available string `json:"available"`
+	Disabled  string `json:"disabled"`
+	Verified  string `json:"verified"`
+}
+
+type EmailAssetExpanded EmailAsset
+
+func (a EmailAssetExpanded) Summary() (any, error) {
+	return EmailAssetSummary{
+		ID:        a.ID,
+		Email:     a.Email,
+		Available: fmt.Sprintf("%t", a.Available),
+		Disabled:  fmt.Sprintf("%t", a.Disabled),
+		Verified:  fmt.Sprintf("%t", a.Verified),
+	}, nil
 }

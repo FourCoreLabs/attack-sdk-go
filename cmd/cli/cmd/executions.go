@@ -2,7 +2,6 @@ package cmd
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"strings"
@@ -11,9 +10,16 @@ import (
 	"github.com/fourcorelabs/attack-sdk-go/pkg/api"
 	pkgExecutions "github.com/fourcorelabs/attack-sdk-go/pkg/executions" // Alias to avoid collision
 	"github.com/fourcorelabs/attack-sdk-go/pkg/models"
-	"github.com/rodaine/table"
 	"github.com/spf13/cobra"
 )
+
+type executionViewItem struct {
+	execution models.GetExecutionResponse
+}
+
+func (i executionViewItem) Transform() (any, error) {
+	return models.ExecutionExpanded(i.execution), nil
+}
 
 // executionsCmd represents the executions command
 var executionsCmd = &cobra.Command{
@@ -98,16 +104,9 @@ var executionsListCmd = &cobra.Command{
 			return fmt.Errorf("failed to retrieve executions: %w", err)
 		}
 
-		// --- Output ---
-		switch strings.ToLower(format) {
-		case "json":
-			return printExecutionsJSON(executions)
-		case "table":
-			fallthrough
-		default:
-			printExecutionsTable(executions)
-			return nil
-		}
+		return outputListWithCountItems(cmd, format, "", false, executions, func(item models.GetExecutionResponse) executionViewItem {
+			return executionViewItem{execution: item}
+		}, "No executions found matching the criteria.", "Total Executions")
 	},
 }
 
@@ -304,85 +303,12 @@ func init() {
 	executionsDeleteCmd.Flags().BoolP("confirm", "y", false, "Skip confirmation prompt")
 }
 
-// --- Helper Functions for Output Formatting ---
-
-func printExecutionsTable(executions models.ListWithCountExecutions) {
-	if executions.Count == 0 || len(executions.Data) == 0 {
-		fmt.Println("No executions found matching the criteria.")
-		return
-	}
-
-	fmt.Printf("Total Executions: %d\n\n", executions.Count)
-
-	// Create a new table with headers
-	tbl := table.New("ID", "Attack Name", "Status", "Success", "Detection Rate", "Assets", "Created At", "Updated At")
-
-	for _, execution := range executions.Data {
-		// Format progress as percentage
-		progress := fmt.Sprintf("%.1f%%", execution.Progress)
-
-		// Format detection rate as percentage
-		detectionRate := fmt.Sprintf("%.1f%%", execution.Detected)
-
-		// Format asset count
-		assetCount := fmt.Sprintf("%d", execution.AssetCount)
-
-		// Format created at
-		createdAt := "N/A"
-		if execution.CreatedAt != nil {
-			createdAt = execution.CreatedAt.Format(time.RFC3339)
-		}
-
-		updatedAt := "N/A"
-		if execution.UpdatedAt != nil {
-			createdAt = execution.UpdatedAt.Format(time.RFC3339)
-		}
-
-		// Truncate long attack names
-		attackName := execution.AttackName
-
-		// Add row data
-		tbl.AddRow(
-			execution.ID,
-			attackName,
-			execution.StatusState,
-			progress,
-			detectionRate,
-			assetCount,
-			createdAt,
-			updatedAt,
-		)
-	}
-
-	// Print the table to stdout
-	tbl.Print()
-}
-
-func printExecutionsJSON(executions models.ListWithCountExecutions) error {
-	jsonData, err := json.MarshalIndent(executions, "", "  ")
-	if err != nil {
-		return fmt.Errorf("failed to format JSON output: %w", err)
-	}
-	fmt.Println(string(jsonData))
-	return nil
-}
-
 func printExecutionJSON(execution models.GetExecutionResponse) error {
-	jsonData, err := json.MarshalIndent(execution, "", "  ")
-	if err != nil {
-		return fmt.Errorf("failed to format JSON output: %w", err)
-	}
-	fmt.Println(string(jsonData))
-	return nil
+	return printJSON(rootCmd.OutOrStdout(), execution)
 }
 
 func printExecutionStepJSON(execution []models.ExecutionStepDetections) error {
-	jsonData, err := json.MarshalIndent(execution, "", "  ")
-	if err != nil {
-		return fmt.Errorf("failed to format JSON output: %w", err)
-	}
-	fmt.Println(string(jsonData))
-	return nil
+	return printJSON(rootCmd.OutOrStdout(), execution)
 }
 
 // printStepReportDetails formats and prints the details for a slice of ExecutionStepDetections,

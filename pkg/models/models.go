@@ -1,6 +1,9 @@
 package models
 
-import "time"
+import (
+	"fmt"
+	"time"
+)
 
 type OrderBy struct {
 	Name string
@@ -10,6 +13,36 @@ type OrderBy struct {
 type FilterBy struct {
 	Name  string
 	Value []string
+}
+
+type Severity string
+
+const (
+	SeverityCritical Severity = "critical"
+	SeverityHigh     Severity = "high"
+	SeverityMedium   Severity = "medium"
+	SeverityLow      Severity = "low"
+)
+
+var ValidSeverities = []Severity{
+	SeverityCritical,
+	SeverityHigh,
+	SeverityMedium,
+	SeverityLow,
+}
+
+type Platform string
+
+const (
+	PlatformDarwin  Platform = "darwin"
+	PlatformWindows Platform = "windows"
+	PlatformLinux   Platform = "linux"
+)
+
+var ValidPlatforms = []Platform{
+	PlatformDarwin,
+	PlatformWindows,
+	PlatformLinux,
 }
 
 type Pagination struct {
@@ -26,9 +59,9 @@ type PaginationResponse[Data any] struct {
 }
 
 // ListWithCount represents a generic list response with count
-type ListWithCount struct {
-	Count int           `json:"count"`
-	Data  []interface{} `json:"data"`
+type ListWithCount[T any] struct {
+	Count int `json:"count"`
+	Data  []T `json:"data"`
 }
 
 // SuccessIDResponse represents a success response with an ID
@@ -413,10 +446,40 @@ type TemporaryObject struct {
 	Valid  bool   `json:"valid,omitempty"`
 }
 
-// ListWithCountExecutions represents a list response with count for executions
-type ListWithCountExecutions struct {
-	Count int                    `json:"count"`
-	Data  []GetExecutionResponse `json:"data"`
+type ExecutionSummary struct {
+	ID            string `json:"id"`
+	AttackName    string `json:"attack_name"`
+	Status        string `json:"status"`
+	Success       string `json:"success"`
+	DetectionRate string `json:"detection_rate"`
+	Assets        string `json:"assets"`
+	CreatedAt     string `json:"created_at"`
+	UpdatedAt     string `json:"updated_at"`
+}
+
+type ExecutionExpanded GetExecutionResponse
+
+func (e ExecutionExpanded) Summary() (any, error) {
+	createdAt := "N/A"
+	if e.CreatedAt != nil {
+		createdAt = e.CreatedAt.Format(time.RFC3339)
+	}
+
+	updatedAt := "N/A"
+	if e.UpdatedAt != nil {
+		updatedAt = e.UpdatedAt.Format(time.RFC3339)
+	}
+
+	return ExecutionSummary{
+		ID:            e.ID,
+		AttackName:    e.AttackName,
+		Status:        e.StatusState,
+		Success:       fmt.Sprintf("%.1f%%", e.Progress),
+		DetectionRate: fmt.Sprintf("%.1f%%", e.Detected),
+		Assets:        fmt.Sprintf("%d", e.AssetCount),
+		CreatedAt:     createdAt,
+		UpdatedAt:     updatedAt,
+	}, nil
 }
 
 type ExecutionStepDetections struct {

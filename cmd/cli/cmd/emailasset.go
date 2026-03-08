@@ -2,7 +2,6 @@ package cmd
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"strings"
@@ -14,6 +13,14 @@ import (
 	"github.com/rodaine/table"
 	"github.com/spf13/cobra"
 )
+
+type emailAssetViewItem struct {
+	asset asset.EmailAsset
+}
+
+func (i emailAssetViewItem) Transform() (any, error) {
+	return asset.EmailAssetExpanded(i.asset), nil
+}
 
 // emailAssetCmd represents the emailasset command
 var emailAssetCmd = &cobra.Command{
@@ -56,16 +63,9 @@ var emailAssetListCmd = &cobra.Command{
 			return fmt.Errorf("failed to retrieve email assets: %w", err)
 		}
 
-		// --- Output ---
-		switch strings.ToLower(format) {
-		case "json":
-			return printEmailAssetsJSON(assets)
-		case "table":
-			fallthrough // Default to table
-		default:
-			printEmailAssetsTable(assets)
-			return nil
-		}
+		return outputItems(cmd, format, "", false, assets, func(item asset.EmailAsset) emailAssetViewItem {
+			return emailAssetViewItem{asset: item}
+		}, "No email assets found.")
 	},
 }
 
@@ -111,7 +111,7 @@ var emailAssetGetCmd = &cobra.Command{
 		// --- Output ---
 		switch strings.ToLower(format) {
 		case "json":
-			return printEmailAssetJSON(asset)
+			return printJSON(cmd.OutOrStdout(), asset)
 		default:
 			printEmailAssetDetails(asset)
 			return nil
@@ -354,12 +354,7 @@ var emailAssetAnalyticsCmd = &cobra.Command{
 		// --- Output ---
 		switch strings.ToLower(format) {
 		case "json":
-			data, err := json.MarshalIndent(analytics, "", "  ")
-			if err != nil {
-				return fmt.Errorf("failed to format JSON output: %w", err)
-			}
-			fmt.Println(string(data))
-			return nil
+			return printJSON(cmd.OutOrStdout(), analytics)
 		default:
 			printEmailAssetAnalytics(analytics)
 			return nil
@@ -465,24 +460,6 @@ func printEmailAssetsTable(assets []asset.EmailAsset) {
 
 	// Print the table to stdout
 	tbl.Print()
-}
-
-func printEmailAssetsJSON(assets []asset.EmailAsset) error {
-	jsonData, err := json.MarshalIndent(assets, "", "  ")
-	if err != nil {
-		return fmt.Errorf("failed to format JSON output: %w", err)
-	}
-	fmt.Println(string(jsonData))
-	return nil
-}
-
-func printEmailAssetJSON(asset asset.EmailAsset) error {
-	jsonData, err := json.MarshalIndent(asset, "", "  ")
-	if err != nil {
-		return fmt.Errorf("failed to format JSON output: %w", err)
-	}
-	fmt.Println(string(jsonData))
-	return nil
 }
 
 func printEmailAssetDetails(asset asset.EmailAsset) {
