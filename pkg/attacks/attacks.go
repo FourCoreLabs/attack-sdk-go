@@ -44,12 +44,21 @@ func RunAttack(ctx context.Context, h *api.HTTPAPI, attackID int, attackRun mode
 	return resp, nil
 }
 
+type GetAttackOpts struct {
+	Days int `json:"d,omitempty"`
+}
+
 // GetAttack fetches a single saved attack by ID.
-func GetAttack(ctx context.Context, h *api.HTTPAPI, attackID int) (chainsmodel.ChainForUserState, error) {
+func GetAttack(ctx context.Context, h *api.HTTPAPI, attackID int, opts GetAttackOpts) (chainsmodel.ChainForUserState, error) {
 	var resp chainsmodel.ChainForUserState
 
+	params := url.Values{}
+	if opts.Days > 0 {
+		params.Add("d", strconv.FormatInt(int64(opts.Days), 10))
+	}
+
 	endpoint := fmt.Sprintf("%s/%d", AttacksContentV1URI, attackID)
-	_, err := h.GetJSON(ctx, endpoint, &resp)
+	_, err := h.GetJSON(ctx, endpoint, &resp, api.ReqOptions{Params: params})
 	if err != nil {
 		return chainsmodel.ChainForUserState{}, fmt.Errorf("failed to fetch attack: %w", err)
 	}
