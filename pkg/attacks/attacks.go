@@ -31,25 +31,76 @@ func CreateAttack(ctx context.Context, h *api.HTTPAPI, wizard models.CreateAttac
 	return resp, nil
 }
 
-// AttackListItem is one entry of the paginated attacks listing. 
+// RunAttack runs a saved attack by ID on the given assets.
+func RunAttack(ctx context.Context, h *api.HTTPAPI, attackID int, attackRun models.AttackRun) (models.GetExecutionResponse, error) {
+	var resp models.GetExecutionResponse
+
+	endpoint := fmt.Sprintf("%s/%d/run", AttacksV1URI, attackID)
+	_, err := h.PostJSON(ctx, endpoint, attackRun, &resp)
+	if err != nil {
+		return models.GetExecutionResponse{}, fmt.Errorf("failed to run attack: %w", err)
+	}
+
+	return resp, nil
+}
+
+// GetAttack fetches a single saved attack by ID.
+func GetAttack(ctx context.Context, h *api.HTTPAPI, attackID int) (chainsmodel.ChainForUserState, error) {
+	var resp chainsmodel.ChainForUserState
+
+	endpoint := fmt.Sprintf("%s/%d", AttacksContentV1URI, attackID)
+	_, err := h.GetJSON(ctx, endpoint, &resp)
+	if err != nil {
+		return chainsmodel.ChainForUserState{}, fmt.Errorf("failed to fetch attack: %w", err)
+	}
+
+	return resp, nil
+}
+
+// UpdateAttack edits a saved attack by ID.
+func UpdateAttack(ctx context.Context, h *api.HTTPAPI, attackID int, wizard models.CreateAttackWizard) (models.SuccessIDResponse, error) {
+	var resp models.SuccessIDResponse
+
+	endpoint := fmt.Sprintf("%s/%d", AttacksV1URI, attackID)
+	_, err := h.PutJSON(ctx, endpoint, wizard, &resp)
+	if err != nil {
+		return models.SuccessIDResponse{}, fmt.Errorf("failed to update attack: %w", err)
+	}
+
+	return resp, nil
+}
+
+// DeleteAttack deletes a saved attack by ID.
+func DeleteAttack(ctx context.Context, h *api.HTTPAPI, attackID int) error {
+	var discard any // server returns {"success":"...string..."}, not models.SuccessIDResponse
+
+	endpoint := fmt.Sprintf("%s/%d", AttacksV1URI, attackID)
+	_, err := h.DeleteJSON(ctx, endpoint, nil, &discard)
+	if err != nil {
+		return fmt.Errorf("failed to delete attack: %w", err)
+	}
+
+	return nil
+}
+
+// AttackListItem is one entry of the paginated attacks listing.
 type AttackListItem struct {
 	Type string                        `json:"type"`
 	Data chainsmodel.ChainForUserState `json:"data"`
 }
 
 type ListAttackOpts struct {
-	Size        int
-	Offset      int
-	Order       []string
-	Name        string
-	Platforms   []string
-	RunElevated *bool
-	Actions     []string
-	Stagers     []string
+	Size        int      `json:"size"`
+	Offset      int      `json:"offset"`
+	Order       []string `json:"order"`
+	Name        string   `json:"name,omitempty"`
+	Platforms   []string `json:"platforms,omitempty"`
+	RunElevated *bool    `json:"run_elevated,omitempty"`
+	Actions     []string `json:"actions,omitempty"`
+	Stagers     []string `json:"stagers,omitempty"`
 }
 
-// ListAttacks lists saved attacks. When Actions or Stagers are set, it pages
-// through all results and filters them client-side.
+// ListAttacks lists saved attacks.
 func ListAttacks(ctx context.Context, h *api.HTTPAPI, opts ListAttackOpts) (models.PaginationResponse[AttackListItem], error) {
 	if len(opts.Actions) == 0 && len(opts.Stagers) == 0 {
 		return fetchAttacks(ctx, h, opts.Offset, opts.Size, opts)
@@ -85,18 +136,19 @@ func fetchAttacks(ctx context.Context, h *api.HTTPAPI, offset, size int, opts Li
 	var resp models.PaginationResponse[AttackListItem]
 
 	params := url.Values{
-		"size":   []string{strconv.Itoa(size)},
-		"offset": []string{strconv.Itoa(offset)},
+		"size":   []string{strconv.FormatInt(int64(size), 10)},
+		"offset": []string{strconv.FormatInt(int64(offset), 10)},
+		"order":  opts.Order,
 	}
-	for _, o := range opts.Order {
-		params.Add("order", o)
-	}
+
 	if opts.Name != "" {
 		params.Add("filter[name]", opts.Name)
 	}
-	for _, p := range opts.Platforms {
-		params.Add("filter[platforms]", p)
+
+	if len(opts.Platforms) > 0 {
+		params["filter[platforms]"] = opts.Platforms
 	}
+
 	if opts.RunElevated != nil {
 		params.Add("filter[run_elevated]", strconv.FormatBool(*opts.RunElevated))
 	}
