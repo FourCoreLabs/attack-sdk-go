@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"net/url"
 	"strconv"
+	"sync"
 	"time"
 
 	"encoding/json"
@@ -91,6 +92,7 @@ type HTTPAPI struct {
 	client      *http.Client
 	APIKey      string
 	rateLimiter *RateLimiter
+	rateMu      sync.RWMutex
 }
 
 // NewHTTPAPI creates a new API client with default rate limit of 100 reqs/min
@@ -123,6 +125,8 @@ func NewHTTPAPI(baseURL, apiKey string, client ...*http.Client) (*HTTPAPI, error
 
 // setRateLimit updates the rate limiter with a new limit
 func (g *HTTPAPI) setRateLimit(requestsPerMinute int) {
+	g.rateMu.Lock()
+	defer g.rateMu.Unlock()
 	g.rateLimiter = NewRateLimiter(requestsPerMinute)
 }
 
@@ -138,12 +142,17 @@ type ErrorItem struct {
 	More   map[string]any `json:"more,omitempty" description:"Additional information about the error"`
 }
 
+// APIError describes an HTTP error in either the standard v2 or legacy envelope.
+// Use errors.As to inspect it and errors.Is to match SDK sentinel errors.
 type APIError struct {
-	Code   int         `json:"code"`
-	Detail string      `json:"detail"`
-	Title  string      `json:"title"`
-	Status int         `json:"status,omitempty"`
-	Errors []ErrorItem `json:"errors,omitempty" xml:"errors,omitempty"`
+	Code    int         `json:"code"`
+	Detail  string      `json:"detail"`
+	Title   string      `json:"title"`
+	Status  int         `json:"status,omitempty"`
+	Errors  []ErrorItem `json:"errors,omitempty" xml:"errors,omitempty"`
+	Message string      `json:"error,omitempty"`
+	// RetryAfter is the server-requested retry delay in seconds, when available.
+	RetryAfter int64 `json:"-"`
 }
 
 type ForbiddenError struct {
@@ -165,9 +174,14 @@ func (g *HTTPAPI) ResolveBase(base *url.URL, uri string) string {
 	return u.String()
 }
 
+// ReqOptions customizes query parameters, headers, and streaming behavior.
 type ReqOptions struct {
 	Params  url.Values
 	Headers url.Values
+	// NoRedirect returns redirect responses without following them.
+	NoRedirect bool
+	// ContentLength overrides the inferred request length when nonzero.
+	ContentLength int64
 }
 
 func (g *HTTPAPI) req(ctx context.Context, method string, uri string, postBody []byte, isJSON bool, options ...ReqOptions) ([]byte, int, string, error) {
@@ -210,90 +224,30 @@ func parseRateLimitHeaders(headers http.Header) RateInfo {
 }
 
 func (g *HTTPAPI) reqBase(ctx context.Context, base *url.URL, method string, uri string, postBody []byte, isJSON bool, options ...ReqOptions) ([]byte, int, string, error) {
-	// We can use either IsAllowed or Wait depending on whether we want to block or return immediately
-	// Let's implement both approaches with priority to IsAllowed for quick checks
-
-	// First check if we can make the request without waiting
-	allowed, waitTime := g.rateLimiter.IsAllowed()
-	if !allowed {
-		// If wait time is reasonable (less than 5 seconds), we can wait
-		if waitTime <= 5*time.Second {
-			select {
-			case <-time.After(waitTime):
-				// Continue after waiting the short duration
-			case <-context.Background().Done():
-				return nil, 0, "", context.Background().Err()
-			}
-		} else {
-			// Wait time is too long, let's use the Wait method with a max timeout
-			ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-			defer cancel()
-
-			// Try to wait for a token, but only up to our limit
-			if err := g.rateLimiter.WaitMaxDuration(ctx, 5*time.Second); err != nil {
-				// If we couldn't get a token in time, return a rate limit error
-				if errors.Is(err, context.DeadlineExceeded) {
-					return nil, 0, "", fmt.Errorf("%w: retry after %.1f seconds",
-						ErrRateLimited, waitTime.Seconds())
-				}
-				return nil, 0, "", err
-			}
-		}
-	}
-
-	buf := bytes.NewBuffer(postBody)
-	req, err := http.NewRequestWithContext(ctx, method, g.ResolveBase(base, uri), buf)
-	if err != nil {
-		return nil, 0, "", err
-	}
-
-	if isJSON {
-		req.Header.Set("Accept", "application/json")
-	}
-
-	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", g.APIKey))
-
+	var opts ReqOptions
 	if len(options) > 0 {
-		optionsVal := options[0]
-		for k, v := range optionsVal.Headers {
-			req.Header[k] = append(req.Header[k], v...)
-		}
-		if params := optionsVal.Params; len(params) > 0 {
-			q := req.URL.Query()
-			for k, v := range params {
-				q[k] = append(q[k], v...)
-			}
-
-			req.URL.RawQuery = q.Encode()
+		opts = options[0]
+	}
+	opts.Headers = url.Values(http.Header(opts.Headers).Clone())
+	if opts.Headers == nil {
+		opts.Headers = make(url.Values)
+	}
+	if isJSON {
+		opts.Headers.Set("Accept", "application/json")
+		if postBody != nil {
+			opts.Headers.Set("Content-Type", "application/json")
 		}
 	}
-
-	response, err := g.client.Do(req)
+	response, err := g.doBase(ctx, base, method, uri, bytes.NewReader(postBody), opts)
 	if err != nil {
 		return nil, 0, "", err
 	}
 	defer response.Body.Close()
 
-	// Parse rate limit headers from response
-	rateInfo := parseRateLimitHeaders(response.Header)
-
-	// If we received a rate limit response, update our local limiter if needed
-	if response.StatusCode == http.StatusTooManyRequests {
-		// Update rate limiter if we get new limit information
-		if rateInfo.Limit > 0 && rateInfo.Limit != g.rateLimiter.limit {
-			g.setRateLimit(rateInfo.Limit)
-		}
-
-		// If there's a retry-after header, return appropriate error
-		if rateInfo.RetryAfter > 0 {
-			return nil, response.StatusCode, response.Header.Get("Content-Type"),
-				fmt.Errorf("%w: retry after %d seconds", ErrRateLimited, rateInfo.RetryAfter)
-		}
-
-		return nil, response.StatusCode, response.Header.Get("Content-Type"), ErrRateLimited
-	}
-
 	body, err := io.ReadAll(response.Body)
+	if err == nil && response.StatusCode == http.StatusTooManyRequests {
+		return nil, response.StatusCode, response.Header.Get("Content-Type"), responseError(response.StatusCode, body, response.Header)
+	}
 	return body, response.StatusCode, response.Header.Get("Content-Type"), err
 }
 
@@ -304,23 +258,6 @@ func (g *HTTPAPI) reqBuf(ctx context.Context, method string, uri string, buf []b
 	}
 
 	switch statusCode {
-	case http.StatusForbidden:
-		var message ForbiddenError
-		if err := json.Unmarshal(body, &message); err != nil {
-			return nil, ErrApiKeyInvalid
-		}
-
-		return nil, fmt.Errorf("%v: %v", message.Code, message.Error)
-
-	case http.StatusUnauthorized:
-		var message APIError
-		if err := json.Unmarshal(body, &message); err != nil {
-			return nil, ErrApiKeyInvalid
-		}
-		apiErr := message.GetError()
-
-		return nil, fmt.Errorf("%v: %v", apiErr.Name, apiErr.Reason)
-
 	case http.StatusOK, http.StatusCreated:
 		if err := json.Unmarshal(body, dest); err != nil {
 			return nil, err
@@ -328,43 +265,8 @@ func (g *HTTPAPI) reqBuf(ctx context.Context, method string, uri string, buf []b
 
 		return dest, nil
 
-	case http.StatusBadRequest:
-		var message APIError
-		if err := json.Unmarshal(body, &message); err != nil {
-			return nil, err
-		}
-
-		apiErr := message.GetError()
-
-		return nil, fmt.Errorf("%v: %v", apiErr.Name, apiErr.Reason)
-
-	case http.StatusNotFound:
-		var message APIError
-		if err := json.Unmarshal(body, &message); err != nil {
-			return nil, ErrNotFound
-		}
-		apiErr := message.GetError()
-
-		return nil, fmt.Errorf("%v: %v", apiErr.Name, apiErr.Reason)
-
-	case http.StatusTooManyRequests:
-		var message APIError
-		if err := json.Unmarshal(body, &message); err != nil {
-			return nil, ErrRateLimited
-		}
-		apiErr := message.GetError()
-
-		return nil, fmt.Errorf("%v: %v", apiErr.Name, apiErr.Reason)
-
 	default:
-		var message APIError
-		if err := json.Unmarshal(body, &message); err != nil {
-			return nil, fmt.Errorf("%s: %v", ErrNotFound.Error(), errors.New("invalid response content"))
-		}
-
-		apiErr := message.GetError()
-
-		return nil, fmt.Errorf("%v: %v", apiErr.Name, apiErr.Reason)
+		return nil, responseError(statusCode, body)
 	}
 }
 

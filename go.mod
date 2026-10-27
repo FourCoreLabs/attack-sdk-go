@@ -1,6 +1,6 @@
 module github.com/fourcorelabs/attack-sdk-go
 
-go 1.24.0
+go 1.27.3
 
 require (
 	github.com/rodaine/table v1.3.0
