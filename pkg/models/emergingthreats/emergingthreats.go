@@ -1,7 +1,8 @@
-// Package emergingthreats defines user-created emerging-threat campaign models.
+// Package emergingthreats defines threat catalog, authored IOC, and execution models.
 package emergingthreats
 
 import (
+	"database/sql"
 	"time"
 
 	"github.com/fourcorelabs/attack-sdk-go/pkg/models"
@@ -134,6 +135,21 @@ type RunAttackRequest struct {
 	Behaviours     *BehaviourOpts `json:"behaviours,omitempty"`
 }
 
+// RunConditionalRequest selects catalog threats by ID and/or content conditions.
+// If AttackPayloads is empty, conditions apply to all subscribed catalog threats.
+// FilterBy uses names such as family, category and start_release_date; multiple
+// values belong in a single FilterBy entry's Value slice.
+type RunConditionalRequest struct {
+	RunAttackRequest
+	FilterBy []Condition `json:"filter_by,omitempty"`
+}
+
+// Condition is a content filter in a conditional execution request.
+type Condition struct {
+	Name  string   `json:"name"`
+	Value []string `json:"value"`
+}
+
 // RunCampaignRequest executes one or more saved campaigns on endpoint and email
 // assets. Provide at least one endpoint asset, email asset, or both.
 type RunCampaignRequest struct {
@@ -175,6 +191,9 @@ type AttackRun struct {
 	Type                   string                         `json:"type"`
 	Tags                   models.Tag                     `json:"tags"`
 	Deprecated             bool                           `json:"deprecated"`
+	Steps                  []models.ExecutionStepSummary  `json:"steps"`
+	ScheduleJobID          sql.NullString                 `json:"schedule_job_id"`
+	ScheduleID             sql.NullString                 `json:"schedule_id"`
 	CreatedAt              *time.Time                     `json:"created_at,omitempty"`
 	UpdatedAt              *time.Time                     `json:"updated_at,omitempty"`
 }
@@ -228,6 +247,8 @@ type CampaignRun struct {
 	ReportCategory          string                         `json:"report_category"`
 	IsRecurring             bool                           `json:"is_recurring"`
 	Deprecated              bool                           `json:"deprecated"`
+	ScheduleJobID           sql.NullString                 `json:"schedule_job_id"`
+	ScheduleID              sql.NullString                 `json:"schedule_id"`
 	CreatedAt               *time.Time                     `json:"created_at,omitempty"`
 	UpdatedAt               *time.Time                     `json:"updated_at,omitempty"`
 }
@@ -298,7 +319,7 @@ type Campaign struct {
 	EmergingThreatAttackCampaignID string             `json:"emerging_threat_attack_campaign_id,omitempty"`
 }
 
-// Attack is an IOC entry returned by a campaign API. Its description uses "text".
+// Attack is a catalog threat or authored IOC entry. Its description uses "text".
 type Attack struct {
 	ID                     string                        `json:"id"`
 	Key                    string                        `json:"key"`

@@ -1,5 +1,5 @@
-// Package emergingthreats manages standalone IOC entries, IOC campaigns, and
-// their executions through the v2 API.
+// Package emergingthreats browses the threat catalog, manages user-created IOC
+// entries and campaigns, and executes and reports on threats through the v2 API.
 package emergingthreats
 
 import (
@@ -17,10 +17,10 @@ import (
 )
 
 // AttacksV2URI is the base endpoint for standalone user-created entries.
-const AttacksV2URI = "/api/v2/content/emerging_threat_attacks"
+const AttacksV2URI = "/api/v2/emerging_threat/attack"
 
 // CampaignsV2URI is the base endpoint for user-created emerging-threat campaigns.
-const CampaignsV2URI = "/api/v2/content/emerging_threat_attacks/campaigns"
+const CampaignsV2URI = AttacksV2URI + "/campaigns"
 
 // ExecuteAttacksV2URI is the base endpoint for executing saved entries.
 const ExecuteAttacksV2URI = "/api/v2/emerging_threat/user"
