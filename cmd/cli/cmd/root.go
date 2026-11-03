@@ -73,6 +73,10 @@ allowing management and retrieval of various resources.`,
 
 // Execute adds all child commands to the root command and sets flags appropriately.
 // This is called by main.main(). It only needs to happen once to the rootCmd.
+//
+// Required permission: depends on the selected subcommand and its API endpoints.
+// Local configuration and help commands require no API permission. Required
+// features and execution_enabled guards also depend on the selected subcommand.
 func Execute() error {
 	// Set version template
 	rootCmd.SetVersionTemplate(`{{printf "%s %s\n" .Name .Version}}`)

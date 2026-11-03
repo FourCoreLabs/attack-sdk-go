@@ -16,6 +16,9 @@ type auditViewItem struct {
 	log auditlog.AuditLog
 }
 
+// Transform converts the existing audit log into its expanded view model.
+//
+// Required permission: none (local operation).
 func (i auditViewItem) Transform() (any, error) {
 	return auditlog.AuditLogExpanded(i.log), nil
 }

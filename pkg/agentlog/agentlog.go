@@ -28,6 +28,9 @@ type AgentLogOpts struct {
 }
 
 // GetAgentLogs retrieves agent logs from the API with the given options
+//
+// Required permission: assets.read.
+// Required feature: endpoint.
 func GetAgentLogs(ctx context.Context, h *api.HTTPAPI, opts AgentLogOpts) (models.PaginationResponse[agentlog.AgentLog], error) {
 	var resp models.PaginationResponse[agentlog.AgentLog]
 

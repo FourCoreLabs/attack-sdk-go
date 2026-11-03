@@ -11,10 +11,16 @@ type jsonRenderer struct{}
 
 var _ renderers.Renderer = (*jsonRenderer)(nil)
 
+// NewJsonRender creates a JSON renderer.
+//
+// Required permission: none (local operation).
 func NewJsonRender() renderers.Renderer {
 	return &jsonRenderer{}
 }
 
+// Render writes items as indented JSON to w.
+//
+// Required permission: none (local rendering).
 func (r *jsonRenderer) Render(w io.Writer, items []any, opts ...renderers.RendererOptFunc) error {
 	opt := renderers.RendererOption{}
 	for _, fn := range opts {

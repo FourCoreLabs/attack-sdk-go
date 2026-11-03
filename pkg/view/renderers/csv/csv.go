@@ -11,10 +11,16 @@ type csvRenderer struct{}
 
 var _ renderers.Renderer = (*csvRenderer)(nil)
 
+// NewCsvRender creates a CSV renderer.
+//
+// Required permission: none (local operation).
 func NewCsvRender() renderers.Renderer {
 	return &csvRenderer{}
 }
 
+// Render writes items as CSV to w.
+//
+// Required permission: none (local rendering).
 func (r *csvRenderer) Render(w io.Writer, items []any, opts ...renderers.RendererOptFunc) error {
 	opt := renderers.RendererOption{}
 	for _, fn := range opts {

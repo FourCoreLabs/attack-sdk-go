@@ -28,11 +28,14 @@ type RunEvent struct {
 
 // WatchRun streams per-threat run events, stopping on close, EOF, cancellation or
 // when the consumer breaks iteration. It closes the body on every exit and does
-// not reconnect/retry. Requires emergingthreat.read. For long-lived streams pass
+// not reconnect/retry. For long-lived streams pass
 // an HTTP client without a short total timeout to api.NewHTTPAPI.
 //
 // Status-update events are invalidation notifications: call GetReport to refresh
 // the report. Inspect a close event's Data for a server-reported stream error.
+//
+// Required permission: emergingthreat.read.
+// Required feature: emerging_threats. Refreshing via GetReport needs executions.read.
 func WatchRun(ctx context.Context, h *api.HTTPAPI, runID string) iter.Seq2[RunEvent, error] {
 	return func(yield func(RunEvent, error) bool) {
 		if err := validatePathSegment(runID, "run ID"); err != nil {

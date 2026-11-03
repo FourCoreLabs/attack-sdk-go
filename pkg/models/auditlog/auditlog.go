@@ -36,6 +36,9 @@ type AuditLogSummary struct {
 
 type AuditLogExpanded AuditLog
 
+// Summary formats the audit log's existing data for summary output.
+//
+// Required permission: none (local operation).
 func (a AuditLogExpanded) Summary() (any, error) {
 	timeStr := "N/A"
 	if a.CreatedAt != nil {

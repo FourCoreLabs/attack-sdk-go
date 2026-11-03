@@ -120,7 +120,7 @@ returns an empty slice or nil without error for a bodyless HTTP 204 response.
 | `GetCampaignReport` | `GET /api/v2/emerging_threat/campaign/reports/:id` |
 | `DeleteCampaignReport` | `DELETE /api/v2/emerging_threat/campaign/reports/:id` |
 
-Reads require `emergingthreat.read`; deletes require `emergingthreat.delete`.
+Report reads require `executions.read`; deletes require `executions.delete`.
 Detail, abort and delete functions take **run IDs**, not content IDs. Reports
 cover catalog and authored runs. `AttackRun` includes step summaries, asset
 details and scheduling identities. Scheduling identities retain the server's

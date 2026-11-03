@@ -459,6 +459,9 @@ type ExecutionSummary struct {
 
 type ExecutionExpanded GetExecutionResponse
 
+// Summary formats the execution's existing data for summary output.
+//
+// Required permission: none (local operation).
 func (e ExecutionExpanded) Summary() (any, error) {
 	createdAt := "N/A"
 	if e.CreatedAt != nil {

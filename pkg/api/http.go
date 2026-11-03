@@ -24,6 +24,8 @@ type RateLimiter struct {
 }
 
 // NewRateLimiter creates a new rate limiter with default values
+//
+// Required permission: none (local operation).
 func NewRateLimiter(requestsPerMinute int) *RateLimiter {
 	// Convert requests per minute to requests per second
 	rps := float64(requestsPerMinute) / 60.0
@@ -38,6 +40,8 @@ func NewRateLimiter(requestsPerMinute int) *RateLimiter {
 
 // IsAllowed checks if a request is allowed based on rate limits without blocking
 // Returns true if allowed, false if rate limited, and duration to wait if limited
+//
+// Required permission: none (local operation).
 func (r *RateLimiter) IsAllowed() (bool, time.Duration) {
 	// Use Reserve to get information about when a token would be available
 	reservation := r.limiter.Reserve()
@@ -62,16 +66,22 @@ func (r *RateLimiter) IsAllowed() (bool, time.Duration) {
 }
 
 // Allow checks if a request is allowed based on rate limits and consumes a token if available
+//
+// Required permission: none (local operation).
 func (r *RateLimiter) Allow() bool {
 	return r.limiter.Allow()
 }
 
 // Wait blocks until a request can be allowed or the context is done
+//
+// Required permission: none (local operation).
 func (r *RateLimiter) Wait(ctx context.Context) error {
 	return r.limiter.Wait(ctx)
 }
 
 // WaitMaxDuration tries to wait for a token but only up to the specified max duration
+//
+// Required permission: none (local operation).
 func (r *RateLimiter) WaitMaxDuration(ctx context.Context, maxWait time.Duration) error {
 	// Create a new context with timeout
 	ctx, cancel := context.WithTimeout(ctx, maxWait)
@@ -81,6 +91,8 @@ func (r *RateLimiter) WaitMaxDuration(ctx context.Context, maxWait time.Duration
 }
 
 // RemainingTokens returns an estimate of the number of remaining requests
+//
+// Required permission: none (local operation).
 func (r *RateLimiter) RemainingTokens() float64 {
 	return r.limiter.Tokens()
 }
@@ -96,6 +108,8 @@ type HTTPAPI struct {
 }
 
 // NewHTTPAPI creates a new API client with default rate limit of 100 reqs/min
+//
+// Required permission: none (local operation; no API request is sent).
 func NewHTTPAPI(baseURL, apiKey string, client ...*http.Client) (*HTTPAPI, error) {
 	parsedURL, err := url.Parse(baseURL)
 	if err != nil {
@@ -160,6 +174,9 @@ type ForbiddenError struct {
 	Error string `json:"error"`
 }
 
+// GetError returns an error item containing the API error's title and status.
+//
+// Required permission: none (local operation).
 func (a *APIError) GetError() ErrorItem {
 	return ErrorItem{
 		Name:   a.Title,
@@ -167,6 +184,9 @@ func (a *APIError) GetError() ErrorItem {
 	}
 }
 
+// ResolveBase resolves an API path against the supplied base URL.
+//
+// Required permission: none (local operation).
 func (g *HTTPAPI) ResolveBase(base *url.URL, uri string) string {
 	rel := &url.URL{Path: uri}
 	u := base.ResolveReference(rel)
@@ -272,6 +292,10 @@ func (g *HTTPAPI) reqBuf(ctx context.Context, method string, uri string, buf []b
 	}
 }
 
+// ReqJSON sends a JSON API request and decodes the response into dest.
+//
+// Required permission: depends on the HTTP method and endpoint in uri.
+// Required features and execution_enabled guards also depend on the endpoint.
 func (g *HTTPAPI) ReqJSON(ctx context.Context, method string, uri string, post interface{}, dest interface{}, options ...ReqOptions) (interface{}, error) {
 	var err error
 	var buf []byte
@@ -291,18 +315,34 @@ func (g *HTTPAPI) ReqJSON(ctx context.Context, method string, uri string, post i
 	return dest, nil
 }
 
+// GetJSON sends a GET request and decodes the JSON response into dest.
+//
+// Required permission: depends on the GET endpoint in uri.
+// Required features and execution_enabled guards also depend on the endpoint.
 func (g *HTTPAPI) GetJSON(ctx context.Context, uri string, dest interface{}, options ...ReqOptions) (interface{}, error) {
 	return g.ReqJSON(ctx, "GET", uri, nil, dest, options...)
 }
 
+// PostJSON sends a POST request with a JSON body and decodes the response into dest.
+//
+// Required permission: depends on the POST endpoint in uri.
+// Required features and execution_enabled guards also depend on the endpoint.
 func (g *HTTPAPI) PostJSON(ctx context.Context, uri string, post interface{}, dest interface{}, options ...ReqOptions) (interface{}, error) {
 	return g.ReqJSON(ctx, "POST", uri, post, dest, options...)
 }
 
+// PutJSON sends a PUT request with a JSON body and decodes the response into dest.
+//
+// Required permission: depends on the PUT endpoint in uri.
+// Required features and execution_enabled guards also depend on the endpoint.
 func (g *HTTPAPI) PutJSON(ctx context.Context, uri string, post interface{}, dest interface{}, options ...ReqOptions) (interface{}, error) {
 	return g.ReqJSON(ctx, "PUT", uri, post, dest, options...)
 }
 
+// DeleteJSON sends a DELETE request with a JSON body and decodes the response into dest.
+//
+// Required permission: depends on the DELETE endpoint in uri.
+// Required features and execution_enabled guards also depend on the endpoint.
 func (g *HTTPAPI) DeleteJSON(ctx context.Context, uri string, post interface{}, dest interface{}, options ...ReqOptions) (interface{}, error) {
 	return g.ReqJSON(ctx, "DELETE", uri, post, dest, options...)
 }

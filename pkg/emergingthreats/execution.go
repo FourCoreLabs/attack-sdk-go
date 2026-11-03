@@ -13,7 +13,10 @@ import (
 const ExecutionsV2URI = "/api/v2/emerging_threat"
 
 // RunCatalogThreats executes selected subscribed catalog threat IDs. For authored
-// IOC IDs use RunAttacks instead. Requires emergingthreat.execute and enabled execution.
+// IOC IDs use RunAttacks instead.
+//
+// Required permission: emergingthreat.execute.
+// Required feature: emerging_threats. Requires execution_enabled=true.
 func RunCatalogThreats(ctx context.Context, h *api.HTTPAPI, request model.RunAttackRequest) ([]model.AttackRun, error) {
 	if err := validateIDs(request.AttackPayloads, "catalog threat ID"); err != nil {
 		return nil, err
@@ -32,6 +35,9 @@ func RunCatalogThreats(ctx context.Context, h *api.HTTPAPI, request model.RunAtt
 // RunConditionalCatalogThreats executes catalog threats selected by conditions.
 // An empty ID list applies conditions across all subscribed threats; the server
 // enforces its payload execution limit. Returns one campaign-shaped grouped run.
+//
+// Required permission: emergingthreat.execute.
+// Required feature: emerging_threats. Requires execution_enabled=true.
 func RunConditionalCatalogThreats(ctx context.Context, h *api.HTTPAPI, request model.RunConditionalRequest) (model.CampaignRun, error) {
 	var result model.CampaignRun
 	if err := validateRunAssets(request.Assets, request.EmailAssets); err != nil {
@@ -51,6 +57,9 @@ func RunConditionalCatalogThreats(ctx context.Context, h *api.HTTPAPI, request m
 
 // RunCatalogCampaign executes the subscribed campaign identified by id. Any
 // Campaigns in request are ignored; the path selects the campaign.
+//
+// Required permission: emergingthreat.execute.
+// Required feature: emerging_threats. Requires execution_enabled=true.
 func RunCatalogCampaign(ctx context.Context, h *api.HTTPAPI, id string, request model.RunCampaignRequest) (model.CampaignRun, error) {
 	var result model.CampaignRun
 	if err := validatePathSegment(id, "catalog campaign ID"); err != nil {
@@ -69,6 +78,9 @@ func RunCatalogCampaign(ctx context.Context, h *api.HTTPAPI, id string, request 
 
 // RunCatalogCampaigns executes subscribed catalog campaigns. For user-authored
 // campaigns use RunCampaigns instead. Returns one run summary per campaign.
+//
+// Required permission: emergingthreat.execute.
+// Required feature: emerging_threats. Requires execution_enabled=true.
 func RunCatalogCampaigns(ctx context.Context, h *api.HTTPAPI, request model.RunCampaignRequest) ([]model.CampaignRun, error) {
 	if err := validateIDs(request.Campaigns, "catalog campaign ID"); err != nil {
 		return nil, err
@@ -84,7 +96,10 @@ func RunCatalogCampaigns(ctx context.Context, h *api.HTTPAPI, request model.RunC
 	return result, nil
 }
 
-// AbortRun stops a per-threat run by run ID. Requires emergingthreat.execute.
+// AbortRun stops a per-threat run by run ID.
+//
+// Required permission: emergingthreat.execute.
+// Required feature: emerging_threats. Does not require execution_enabled=true.
 func AbortRun(ctx context.Context, h *api.HTTPAPI, runID string) (models.SuccessIDResponse, error) {
 	var result models.SuccessIDResponse
 	if err := validatePathSegment(runID, "run ID"); err != nil {
@@ -97,7 +112,10 @@ func AbortRun(ctx context.Context, h *api.HTTPAPI, runID string) (models.Success
 	return result, nil
 }
 
-// AbortCampaignRun stops a campaign run by run ID. Requires emergingthreat.execute.
+// AbortCampaignRun stops a campaign run by run ID.
+//
+// Required permission: emergingthreat.execute.
+// Required feature: emerging_threats. Does not require execution_enabled=true.
 func AbortCampaignRun(ctx context.Context, h *api.HTTPAPI, runID string) (models.SuccessIDResponse, error) {
 	var result models.SuccessIDResponse
 	if err := validatePathSegment(runID, "campaign run ID"); err != nil {

@@ -11,10 +11,16 @@ type tableRenderer struct{}
 
 var _ renderers.Renderer = (*tableRenderer)(nil)
 
+// NewTableRender creates a table renderer.
+//
+// Required permission: none (local operation).
 func NewTableRender() renderers.Renderer {
 	return &tableRenderer{}
 }
 
+// Render writes items as a text table to w.
+//
+// Required permission: none (local rendering).
 func (r *tableRenderer) Render(w io.Writer, items []any, opts ...renderers.RendererOptFunc) error {
 	opt := renderers.RendererOption{}
 	for _, fn := range opts {

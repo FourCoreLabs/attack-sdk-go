@@ -52,7 +52,9 @@ type ListCampaignReportsOpts struct {
 	Behaviours          []string
 }
 
-// ListReports lists per-threat execution summaries. Requires emergingthreat.read.
+// ListReports lists per-threat execution summaries.
+//
+// Required permission: executions.read.
 func ListReports(ctx context.Context, h *api.HTTPAPI, opts ListReportsOpts) (models.PaginationResponse[model.AttackRun], error) {
 	var result models.PaginationResponse[model.AttackRun]
 	params := make(url.Values)
@@ -71,6 +73,8 @@ func ListReports(ctx context.Context, h *api.HTTPAPI, opts ListReportsOpts) (mod
 
 // GetReport retrieves a run by run ID, not threat ID, including asset/step details.
 // Deleted reports return a structured API error with status 410.
+//
+// Required permission: executions.read.
 func GetReport(ctx context.Context, h *api.HTTPAPI, runID string) (model.AttackRun, error) {
 	var result model.AttackRun
 	if err := validatePathSegment(runID, "run ID"); err != nil {
@@ -83,7 +87,9 @@ func GetReport(ctx context.Context, h *api.HTTPAPI, runID string) (model.AttackR
 	return result, nil
 }
 
-// DeleteReport deletes a per-threat run report. Requires emergingthreat.delete.
+// DeleteReport deletes a per-threat run report.
+//
+// Required permission: executions.delete.
 func DeleteReport(ctx context.Context, h *api.HTTPAPI, runID string) (models.SuccessIDResponse, error) {
 	var result models.SuccessIDResponse
 	if err := validatePathSegment(runID, "run ID"); err != nil {
@@ -96,7 +102,9 @@ func DeleteReport(ctx context.Context, h *api.HTTPAPI, runID string) (models.Suc
 	return result, nil
 }
 
-// ListCampaignReports lists campaign run summaries. Requires emergingthreat.read.
+// ListCampaignReports lists campaign run summaries.
+//
+// Required permission: executions.read.
 func ListCampaignReports(ctx context.Context, h *api.HTTPAPI, opts ListCampaignReportsOpts) (models.PaginationResponse[model.CampaignRun], error) {
 	var result models.PaginationResponse[model.CampaignRun]
 	params := make(url.Values)
@@ -122,6 +130,8 @@ func ListCampaignReports(ctx context.Context, h *api.HTTPAPI, opts ListCampaignR
 }
 
 // GetCampaignReport retrieves a campaign run by run ID, not catalog/campaign ID.
+//
+// Required permission: executions.read.
 func GetCampaignReport(ctx context.Context, h *api.HTTPAPI, runID string) (model.CampaignRun, error) {
 	var result model.CampaignRun
 	if err := validatePathSegment(runID, "campaign run ID"); err != nil {
@@ -134,7 +144,9 @@ func GetCampaignReport(ctx context.Context, h *api.HTTPAPI, runID string) (model
 	return result, nil
 }
 
-// DeleteCampaignReport deletes a campaign report. Requires emergingthreat.delete.
+// DeleteCampaignReport deletes a campaign report.
+//
+// Required permission: executions.delete.
 func DeleteCampaignReport(ctx context.Context, h *api.HTTPAPI, runID string) (models.SuccessIDResponse, error) {
 	var result models.SuccessIDResponse
 	if err := validatePathSegment(runID, "campaign run ID"); err != nil {

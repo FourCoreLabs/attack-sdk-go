@@ -42,8 +42,10 @@ type ListAllExecutionsOpts struct {
 }
 
 // ListAllExecutions retrieves the unified reports page, including emerging-threat
-// runs. Requires executions.read. GroupType determines which report detail API
+// runs. GroupType determines which report detail API
 // accepts the row's RunID; do not pass every RunID to GetExecutionReport.
+//
+// Required permission: executions.read.
 func ListAllExecutions(ctx context.Context, h *api.HTTPAPI, opts ListAllExecutionsOpts) (models.PaginationResponse[models.SimulationReport], error) {
 	var result models.PaginationResponse[models.SimulationReport]
 	params := make(url.Values)

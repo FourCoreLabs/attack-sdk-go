@@ -15,6 +15,8 @@ type Config struct {
 
 // DefaultConfig returns the default configuration values *stored in the file*.
 // The effective default (like base URL) might be applied elsewhere if the file value is empty.
+//
+// Required permission: none (local operation).
 func DefaultConfig() Config {
 	return Config{
 		// BaseURL: "https://prod.fourcore.io", // Can keep or remove, root.go handles effective default
@@ -22,6 +24,8 @@ func DefaultConfig() Config {
 }
 
 // LoadConfig loads the configuration from the config file.
+//
+// Required permission: none (local file access only).
 func LoadConfig() (Config, error) {
 	cfg := DefaultConfig() // Start with file defaults (which might be empty strings)
 
@@ -54,6 +58,8 @@ func LoadConfig() (Config, error) {
 }
 
 // SaveConfig saves the configuration to the config file.
+//
+// Required permission: none (local file access only).
 func SaveConfig(cfg Config) error {
 	configPath, err := getConfigPath()
 	if err != nil {

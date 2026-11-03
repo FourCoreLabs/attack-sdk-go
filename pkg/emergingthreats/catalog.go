@@ -101,7 +101,9 @@ type OverviewOpts struct {
 }
 
 // ListCatalogThreats lists subscribed threats, not user-created entries.
-// Requires emergingthreat.read and the emerging_threats feature.
+//
+// Required permission: emergingthreat.read.
+// Required feature: emerging_threats.
 func ListCatalogThreats(ctx context.Context, h *api.HTTPAPI, opts ListCatalogThreatsOpts) (models.PaginationResponse[model.Attack], error) {
 	var result models.PaginationResponse[model.Attack]
 	params, err := catalogListParams(opts)
@@ -116,6 +118,9 @@ func ListCatalogThreats(ctx context.Context, h *api.HTTPAPI, opts ListCatalogThr
 }
 
 // GetCatalogThreat retrieves a subscribed threat and its behavior analytics.
+//
+// Required permission: emergingthreat.read.
+// Required feature: emerging_threats.
 func GetCatalogThreat(ctx context.Context, h *api.HTTPAPI, id string, opts AnalyticsOpts) (model.Attack, error) {
 	var result model.Attack
 	if err := validatePathSegment(id, "catalog threat ID"); err != nil {
@@ -133,6 +138,9 @@ func GetCatalogThreat(ctx context.Context, h *api.HTTPAPI, id string, opts Analy
 }
 
 // GetCatalogFilters retrieves counted threat filter values.
+//
+// Required permission: emergingthreat.read.
+// Required feature: emerging_threats.
 func GetCatalogFilters(ctx context.Context, h *api.HTTPAPI, filter CatalogFilter) (model.CatalogFilters, error) {
 	var result model.CatalogFilters
 	_, err := h.GetJSON(ctx, CatalogV2URI+"/filters", &result, api.ReqOptions{Params: catalogFilterParams(filter)})
@@ -143,6 +151,9 @@ func GetCatalogFilters(ctx context.Context, h *api.HTTPAPI, filter CatalogFilter
 }
 
 // ListCatalogGroups groups subscribed threats by the selected content attribute.
+//
+// Required permission: emergingthreat.read.
+// Required feature: emerging_threats.
 func ListCatalogGroups(ctx context.Context, h *api.HTTPAPI, group GroupBy, opts ListCatalogThreatsOpts) (models.PaginationResponse[model.Group], error) {
 	var result models.PaginationResponse[model.Group]
 	switch group {
@@ -162,6 +173,9 @@ func ListCatalogGroups(ctx context.Context, h *api.HTTPAPI, group GroupBy, opts 
 }
 
 // ListMalwareCategories lists file-delivery threat categories with outcome totals.
+//
+// Required permission: emergingthreat.read.
+// Required feature: emerging_threats.
 func ListMalwareCategories(ctx context.Context, h *api.HTTPAPI, opts ListMalwareCategoriesOpts) (models.PaginationResponse[model.MalwareCategory], error) {
 	var result models.PaginationResponse[model.MalwareCategory]
 	params := make(url.Values)
@@ -187,6 +201,9 @@ func ListMalwareCategories(ctx context.Context, h *api.HTTPAPI, opts ListMalware
 }
 
 // GetOverviewAnalytics retrieves catalog coverage and outcome counts.
+//
+// Required permission: emergingthreat.read.
+// Required feature: emerging_threats.
 func GetOverviewAnalytics(ctx context.Context, h *api.HTTPAPI, opts OverviewOpts) (model.OverviewAnalytics, error) {
 	var result model.OverviewAnalytics
 	params, err := overviewParams(opts)
@@ -201,6 +218,9 @@ func GetOverviewAnalytics(ctx context.Context, h *api.HTTPAPI, opts OverviewOpts
 }
 
 // GetOverviewPayloadAnalytics retrieves successful payload outcomes by file type.
+//
+// Required permission: emergingthreat.read.
+// Required feature: emerging_threats.
 func GetOverviewPayloadAnalytics(ctx context.Context, h *api.HTTPAPI, opts OverviewOpts) (model.PayloadAnalytics, error) {
 	var result model.PayloadAnalytics
 	params, err := overviewParams(opts)
@@ -215,6 +235,9 @@ func GetOverviewPayloadAnalytics(ctx context.Context, h *api.HTTPAPI, opts Overv
 }
 
 // GetOverviewVectorAnalytics retrieves successful outcomes by delivery vector.
+//
+// Required permission: emergingthreat.read.
+// Required feature: emerging_threats.
 func GetOverviewVectorAnalytics(ctx context.Context, h *api.HTTPAPI, opts OverviewOpts) (model.RunVectorAnalytics, error) {
 	var result model.RunVectorAnalytics
 	params, err := overviewParams(opts)
@@ -229,6 +252,9 @@ func GetOverviewVectorAnalytics(ctx context.Context, h *api.HTTPAPI, opts Overvi
 }
 
 // ListCatalogCampaigns lists subscribed campaigns, not user-authored campaigns.
+//
+// Required permission: emergingthreat.read.
+// Required feature: emerging_threats.
 func ListCatalogCampaigns(ctx context.Context, h *api.HTTPAPI, opts ListCatalogCampaignsOpts) (models.PaginationResponse[model.Campaign], error) {
 	var result models.PaginationResponse[model.Campaign]
 	params := catalogCampaignFilterParams(opts.CatalogCampaignFilter)
@@ -249,6 +275,9 @@ func ListCatalogCampaigns(ctx context.Context, h *api.HTTPAPI, opts ListCatalogC
 }
 
 // GetCatalogCampaign retrieves a subscribed campaign with per-threat analytics.
+//
+// Required permission: emergingthreat.read.
+// Required feature: emerging_threats.
 func GetCatalogCampaign(ctx context.Context, h *api.HTTPAPI, id string, opts AnalyticsOpts) (model.Campaign, error) {
 	var result model.Campaign
 	if err := validatePathSegment(id, "catalog campaign ID"); err != nil {
@@ -266,6 +295,9 @@ func GetCatalogCampaign(ctx context.Context, h *api.HTTPAPI, id string, opts Ana
 }
 
 // GetCatalogCampaignFilters retrieves counted catalog campaign filter values.
+//
+// Required permission: emergingthreat.read.
+// Required feature: emerging_threats.
 func GetCatalogCampaignFilters(ctx context.Context, h *api.HTTPAPI, filter CatalogCampaignFilter) (model.CatalogCampaignFilters, error) {
 	var result model.CatalogCampaignFilters
 	_, err := h.GetJSON(ctx, CatalogCampaignsV2URI+"/filters", &result, api.ReqOptions{Params: catalogCampaignFilterParams(filter)})
@@ -277,6 +309,9 @@ func GetCatalogCampaignFilters(ctx context.Context, h *api.HTTPAPI, filter Catal
 
 // GetCatalogCampaignIndicators retrieves the campaign's supported observables.
 // This is a content API, not a threat-hunting automation API.
+//
+// Required permission: emergingthreat.read.
+// Required feature: emerging_threats.
 func GetCatalogCampaignIndicators(ctx context.Context, h *api.HTTPAPI, id string) (model.CampaignIndicators, error) {
 	var result model.CampaignIndicators
 	if err := validatePathSegment(id, "catalog campaign ID"); err != nil {

@@ -42,6 +42,9 @@ type ListFilesOpts struct {
 }
 
 // GetMetadata retrieves the organization's storage limits and usage.
+//
+// Required permission: tenant_store.read.
+// Required feature: tenant_store.
 func GetMetadata(ctx context.Context, h *api.HTTPAPI) (model.Metadata, error) {
 	var result model.Metadata
 	_, err := h.GetJSON(ctx, TenantStoreV2URI+"/metadata", &result)
@@ -53,6 +56,9 @@ func GetMetadata(ctx context.Context, h *api.HTTPAPI) (model.Metadata, error) {
 
 // UploadFile streams Size bytes from body into a temporary tenant file.
 // The caller owns body and remains responsible for closing it if necessary.
+//
+// Required permission: tenant_store.create.
+// Required feature: tenant_store.
 func UploadFile(ctx context.Context, h *api.HTTPAPI, body io.Reader, opts UploadFileOpts) (model.File, error) {
 	if body == nil || opts.Size <= 0 {
 		return model.File{}, errors.New("upload requires a reader and a positive file size")
@@ -77,6 +83,9 @@ func UploadFile(ctx context.Context, h *api.HTTPAPI, body io.Reader, opts Upload
 }
 
 // ListFiles lists files owned by the API key's organization.
+//
+// Required permission: tenant_store.read.
+// Required feature: tenant_store.
 func ListFiles(ctx context.Context, h *api.HTTPAPI, opts ListFilesOpts) (models.PaginationResponse[model.File], error) {
 	var result models.PaginationResponse[model.File]
 	if opts.Size < 0 || opts.Offset < 0 {
@@ -123,6 +132,9 @@ func ListFiles(ctx context.Context, h *api.HTTPAPI, opts ListFilesOpts) (models.
 
 // GetDownloadURL resolves the API's 307 response without fetching file bytes.
 // The returned presigned URL is short-lived and must not be logged or persisted.
+//
+// Required permission: tenant_store.download.
+// Required feature: tenant_store.
 func GetDownloadURL(ctx context.Context, h *api.HTTPAPI, id string) (*url.URL, error) {
 	endpoint, err := fileEndpoint(id)
 	if err != nil {
@@ -151,6 +163,9 @@ func GetDownloadURL(ctx context.Context, h *api.HTTPAPI, id string) (*url.URL, e
 
 // DownloadFile opens a file stream using its presigned URL without forwarding
 // the API key or cookies. The caller must close the returned reader.
+//
+// Required permission: tenant_store.download (to resolve the presigned URL).
+// Required feature: tenant_store.
 func DownloadFile(ctx context.Context, h *api.HTTPAPI, id string) (io.ReadCloser, error) {
 	location, err := GetDownloadURL(ctx, h, id)
 	if err != nil {
@@ -170,6 +185,9 @@ func DownloadFile(ctx context.Context, h *api.HTTPAPI, id string) (io.ReadCloser
 }
 
 // DeleteFile removes a file owned by the API key's organization.
+//
+// Required permission: tenant_store.delete.
+// Required feature: tenant_store.
 func DeleteFile(ctx context.Context, h *api.HTTPAPI, id string) (models.SuccessIDResponse, error) {
 	endpoint, err := fileEndpoint(id)
 	if err != nil {

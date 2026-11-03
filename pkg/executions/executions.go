@@ -32,6 +32,8 @@ type ExecutionOpts struct {
 }
 
 // GetExecutions retrieves executions from the API with the given options
+//
+// Required permission: executions.read.
 func GetExecutions(ctx context.Context, h *api.HTTPAPI, opts ExecutionOpts) (models.ListWithCount[models.GetExecutionResponse], error) {
 	var resp models.ListWithCount[models.GetExecutionResponse]
 
@@ -89,6 +91,8 @@ func GetExecutions(ctx context.Context, h *api.HTTPAPI, opts ExecutionOpts) (mod
 }
 
 // GetExecutionReport retrieves a detailed execution report by ID
+//
+// Required permission: executions.read.
 func GetExecutionReport(ctx context.Context, h *api.HTTPAPI, executionID string) (models.GetExecutionResponse, error) {
 	var resp models.GetExecutionResponse
 
@@ -98,6 +102,9 @@ func GetExecutionReport(ctx context.Context, h *api.HTTPAPI, executionID string)
 	return resp, err
 }
 
+// GetExecutionStepReport retrieves an execution report and extracts its step detections.
+//
+// Required permission: executions.read.
 func GetExecutionStepReport(ctx context.Context, h *api.HTTPAPI, executionID string) ([]models.ExecutionStepDetections, error) {
 	var resp models.GetExecutionResponse
 	var det []models.ExecutionStepDetections
@@ -121,6 +128,8 @@ func GetExecutionStepReport(ctx context.Context, h *api.HTTPAPI, executionID str
 }
 
 // DeleteExecution deletes an execution by ID
+//
+// Required permission: executions.delete.
 func DeleteExecution(ctx context.Context, h *api.HTTPAPI, executionID string) (models.SuccessIDResponse, error) {
 	var resp models.SuccessIDResponse
 

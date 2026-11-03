@@ -22,6 +22,9 @@ type chainViewItem struct {
 	chain chains.ChainForUserState
 }
 
+// Transform converts the existing chain into its expanded view model.
+//
+// Required permission: none (local operation).
 func (i chainViewItem) Transform() (any, error) {
 	return chains.ChainExpanded(i.chain), nil
 }
@@ -30,6 +33,9 @@ type actionViewItem struct {
 	action modelActions.ActionForUserState
 }
 
+// Transform converts the existing action into its expanded view model.
+//
+// Required permission: none (local operation).
 func (i actionViewItem) Transform() (any, error) {
 	return modelActions.ActionExpanded(i.action), nil
 }

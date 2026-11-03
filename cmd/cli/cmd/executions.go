@@ -17,6 +17,9 @@ type executionViewItem struct {
 	execution models.GetExecutionResponse
 }
 
+// Transform converts the existing execution into its expanded view model.
+//
+// Required permission: none (local operation).
 func (i executionViewItem) Transform() (any, error) {
 	return models.ExecutionExpanded(i.execution), nil
 }

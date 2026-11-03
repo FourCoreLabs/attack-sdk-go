@@ -16,6 +16,9 @@ type mitreCoverageViewItem struct {
 	item mitre.MitreTacticTechniqueWithActionAndStagers
 }
 
+// Transform converts the existing MITRE coverage into its expanded view model.
+//
+// Required permission: none (local operation).
 func (i mitreCoverageViewItem) Transform() (any, error) {
 	return mitre.CoverageExpanded(i.item), nil
 }

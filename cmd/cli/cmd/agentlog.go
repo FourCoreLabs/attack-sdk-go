@@ -17,6 +17,9 @@ type agentLogViewItem struct {
 	log agentlog.AgentLog
 }
 
+// Transform converts the existing agent log into its expanded view model.
+//
+// Required permission: none (local operation).
 func (i agentLogViewItem) Transform() (any, error) {
 	return agentlog.AgentLogExpanded(i.log), nil
 }

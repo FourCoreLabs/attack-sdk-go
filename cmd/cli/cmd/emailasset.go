@@ -18,6 +18,9 @@ type emailAssetViewItem struct {
 	asset asset.EmailAsset
 }
 
+// Transform converts the existing email asset into its expanded view model.
+//
+// Required permission: none (local operation).
 func (i emailAssetViewItem) Transform() (any, error) {
 	return asset.EmailAssetExpanded(i.asset), nil
 }

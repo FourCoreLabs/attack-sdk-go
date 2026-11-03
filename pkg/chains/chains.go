@@ -19,6 +19,9 @@ const ExecuteEndpointChainsV2URI = "/api/v2/chains"
 const ListEndpointChainsV2URI = "/api/v2/content/chains"
 
 // ExecuteEndpointChain executes an endpoint attack chain by chain ID on specified assets
+//
+// Required permission: chain.execute.
+// Required feature: endpoint. Requires execution_enabled=true.
 func ExecuteEndpointChain(ctx context.Context, h *api.HTTPAPI, chainID string, attackRun models.AttackRun) (models.GetExecutionResponse, error) {
 	var response models.GetExecutionResponse
 
@@ -62,6 +65,9 @@ type ListEndpointChainOpts struct {
 	ShowDeprecated   *bool     `json:"show_deprecated,omitempty"`
 }
 
+// ListEndpointChains lists endpoint chains with the given options.
+//
+// Required permission: chains.read.
 func ListEndpointChains(ctx context.Context, h *api.HTTPAPI, opts ListEndpointChainOpts) (models.PaginationResponse[chains.ChainForUserState], error) {
 	var resp models.PaginationResponse[chains.ChainForUserState]
 

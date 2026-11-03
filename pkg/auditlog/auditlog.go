@@ -20,6 +20,8 @@ type AuditLogOpts struct {
 }
 
 // GetAuditLogs retrieves audit logs from the API with the given options.
+//
+// Required permission: audit_log.read.
 func GetAuditLogs(ctx context.Context, h *api.HTTPAPI, opts AuditLogOpts) (models.PaginationResponse[auditlog.AuditLog], error) {
 	var resp models.PaginationResponse[auditlog.AuditLog]
 

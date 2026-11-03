@@ -12,6 +12,9 @@ import (
 const WAFChainsV2URI = "/api/v2/waf/chain"
 
 // ExecuteWAFChain executes a WAF attack chain by chain ID on specified assets
+//
+// Required permission: chain.waf.execute.
+// Required feature: waf. Requires execution_enabled=true.
 func ExecuteWAFChain(ctx context.Context, h *api.HTTPAPI, chainID string, attackRun models.AttackRun) (models.GetExecutionResponse, error) {
 	var response models.GetExecutionResponse
 

@@ -12,6 +12,9 @@ import (
 const EmailChainsV2URI = "/api/v2/email/chain"
 
 // ExecuteEmailChain executes an email attack chain by chain ID on specified assets
+//
+// Required permission: chain.email.execute.
+// Required feature: email. Requires execution_enabled=true.
 func ExecuteEmailChain(ctx context.Context, h *api.HTTPAPI, chainID string, attackRun models.AttackRun) (models.AttackExecution, error) {
 	var response models.AttackExecution
 

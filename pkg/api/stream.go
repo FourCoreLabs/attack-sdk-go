@@ -17,6 +17,9 @@ import (
 // Do sends an API request without buffering either body. URI is an API path,
 // not an external URL. The caller must close the returned response body.
 // HTTP error statuses are returned as responses; DecodeResponse decodes them.
+//
+// Required permission: depends on the HTTP method and endpoint in uri.
+// Required features and execution_enabled guards also depend on the endpoint.
 func (g *HTTPAPI) Do(ctx context.Context, method, uri string, body io.Reader, options ...ReqOptions) (*http.Response, error) {
 	var opts ReqOptions
 	if len(options) > 0 {
@@ -82,6 +85,10 @@ func (g *HTTPAPI) doBase(ctx context.Context, base *url.URL, method, uri string,
 // GetStream fetches an HTTP(S) download URL without API credentials or cookies.
 // It uses the configured transport and timeout, but an isolated redirect policy.
 // The caller must close the returned response body, including on HTTP errors.
+//
+// Required permission: none for this credential-free request. The destination
+// controls access; obtain a presigned URL with the API's download permission first
+// when downloading tenant-store files.
 func (g *HTTPAPI) GetStream(ctx context.Context, rawURL string) (*http.Response, error) {
 	u, err := url.Parse(rawURL)
 	if err != nil {
@@ -124,6 +131,8 @@ func validateDownloadURL(u *url.URL) error {
 
 // DecodeResponse decodes a successful JSON response or returns an *APIError.
 // It always closes the response body. A nil destination discards success bodies.
+//
+// Required permission: none (local response decoding).
 func DecodeResponse(response *http.Response, dest any) error {
 	defer response.Body.Close()
 	body, err := io.ReadAll(response.Body)
@@ -168,6 +177,8 @@ func responseError(status int, body []byte, headers ...http.Header) *APIError {
 }
 
 // Error describes a structured API refusal, including its HTTP status.
+//
+// Required permission: none (local operation).
 func (a *APIError) Error() string {
 	message := cmp.Or(a.Title, a.Message, http.StatusText(a.Status))
 	if a.RetryAfter > 0 {
@@ -181,6 +192,8 @@ func (a *APIError) Error() string {
 
 // Is preserves the SDK's sentinel error checks for authentication, missing
 // resources, and rate limiting while also exposing structured API errors.
+//
+// Required permission: none (local operation).
 func (a *APIError) Is(target error) bool {
 	switch a.Status {
 	case http.StatusUnauthorized, http.StatusForbidden:

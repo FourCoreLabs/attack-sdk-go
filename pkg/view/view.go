@@ -24,10 +24,14 @@ const (
 )
 
 type Transformable interface {
+	// Transform converts an item into its expanded representation.
+	// Required permission: none for the interface; implementations may require permissions.
 	Transform() (any, error)
 }
 
 type Summarizable interface {
+	// Summary converts an item into its summary representation.
+	// Required permission: none for the interface; implementations may require permissions.
 	Summary() (any, error)
 }
 
@@ -41,6 +45,9 @@ type View[T any] struct {
 
 type ViewOpts[T any] func(*View[T]) error
 
+// New creates a view with the given format, mode, data, and options.
+//
+// Required permission: none (local operation; custom options may require permissions).
 func New[T any](format, mode string, data []T, opts ...ViewOpts[T]) (*View[T], error) {
 	f, err := NormalizeFormat(format)
 	if err != nil {
@@ -75,6 +82,9 @@ func New[T any](format, mode string, data []T, opts ...ViewOpts[T]) (*View[T], e
 	return v, nil
 }
 
+// WithViewRender configures a view to use the supplied renderer registry.
+//
+// Required permission: none (local operation).
 func WithViewRender[T any](vr *ViewRender) ViewOpts[T] {
 	return func(v *View[T]) error {
 		v.vr = vr
@@ -82,6 +92,9 @@ func WithViewRender[T any](vr *ViewRender) ViewOpts[T] {
 	}
 }
 
+// SingleElemAndCompose configures single-element composed output for a view.
+//
+// Required permission: none (local operation).
 func SingleElemAndCompose[T any]() ViewOpts[T] {
 	return func(v *View[T]) error {
 		v.isSingleElemAndCompose = true
@@ -89,6 +102,10 @@ func SingleElemAndCompose[T any]() ViewOpts[T] {
 	}
 }
 
+// Render transforms the view's data and writes it using the configured renderer.
+//
+// Required permission: none for built-in rendering; custom transformations and
+// renderers may require permissions.
 func (v *View[T]) Render(w io.Writer) error {
 	if w == nil {
 		return fmt.Errorf("writer cannot be nil")
@@ -112,6 +129,10 @@ func (v *View[T]) Render(w io.Writer) error {
 	return renderer.Render(w, items, opts...)
 }
 
+// Materialize transforms items and optionally summarizes them for the given mode.
+//
+// Required permission: none for this helper; custom Transform and Summary methods
+// may require permissions.
 func Materialize[T any](data []T, mode Mode) ([]any, error) {
 	items := make([]any, 0, len(data))
 	for _, item := range data {
@@ -147,6 +168,9 @@ func processItem(item any, mode Mode) (d any, err error) {
 	return expanded, nil
 }
 
+// NormalizeFormat normalizes and validates an output format name.
+//
+// Required permission: none (local operation).
 func NormalizeFormat(format string) (Format, error) {
 	f := Format(strings.ToLower(strings.TrimSpace(format)))
 	switch f {
@@ -157,6 +181,9 @@ func NormalizeFormat(format string) (Format, error) {
 	}
 }
 
+// NormalizeMode normalizes and validates a view mode name.
+//
+// Required permission: none (local operation).
 func NormalizeMode(mode string) (Mode, error) {
 	m := Mode(strings.ToLower(strings.TrimSpace(mode)))
 	switch m {

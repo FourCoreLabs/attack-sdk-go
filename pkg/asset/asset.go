@@ -16,6 +16,9 @@ const AssetsV2URI = "/api/v2/assets"
 const EmailAssetsV2URI = "/api/v2/assets/email"
 
 // GetAssets retrieves all assets from the API
+//
+// Required permission: assets.read.
+// Required feature: endpoint.
 func GetAssets(ctx context.Context, h *api.HTTPAPI) ([]asset.Asset, error) {
 	var assets []asset.Asset
 
@@ -24,6 +27,9 @@ func GetAssets(ctx context.Context, h *api.HTTPAPI) ([]asset.Asset, error) {
 }
 
 // GetAsset retrieves a specific asset by ID
+//
+// Required permission: assets.read.
+// Required feature: endpoint.
 func GetAsset(ctx context.Context, h *api.HTTPAPI, assetID string) (asset.Asset, error) {
 	var assetData asset.Asset
 
@@ -32,6 +38,9 @@ func GetAsset(ctx context.Context, h *api.HTTPAPI, assetID string) (asset.Asset,
 }
 
 // DisableAsset disables an asset by ID
+//
+// Required permission: assets.write.
+// Required feature: endpoint.
 func DisableAsset(ctx context.Context, h *api.HTTPAPI, assetID string) (models.SuccessIDResponse, error) {
 	var response models.SuccessIDResponse
 
@@ -41,6 +50,9 @@ func DisableAsset(ctx context.Context, h *api.HTTPAPI, assetID string) (models.S
 }
 
 // EnableAsset enables an asset by ID
+//
+// Required permission: assets.write.
+// Required feature: endpoint.
 func EnableAsset(ctx context.Context, h *api.HTTPAPI, assetID string) (models.SuccessIDResponse, error) {
 	var response models.SuccessIDResponse
 
@@ -50,6 +62,9 @@ func EnableAsset(ctx context.Context, h *api.HTTPAPI, assetID string) (models.Su
 }
 
 // DeleteAsset deletes an asset by ID
+//
+// Required permission: assets.delete.
+// Required feature: email (as configured in the server permission catalog).
 func DeleteAsset(ctx context.Context, h *api.HTTPAPI, assetID string) (models.SuccessIDResponse, error) {
 	var response models.SuccessIDResponse
 
@@ -59,6 +74,9 @@ func DeleteAsset(ctx context.Context, h *api.HTTPAPI, assetID string) (models.Su
 }
 
 // GetAssetAnalytics retrieves analytics data for an asset
+//
+// Required permission: assets.read.
+// Required feature: endpoint.
 func GetAssetAnalytics(ctx context.Context, h *api.HTTPAPI, assetID string, days int) (asset.AssetAnalytics, error) {
 	var analytics asset.AssetAnalytics
 
@@ -72,6 +90,9 @@ func GetAssetAnalytics(ctx context.Context, h *api.HTTPAPI, assetID string, days
 }
 
 // SetAssetTags updates the tags for an asset
+//
+// Required permission: assets.write.
+// Required feature: endpoint.
 func SetAssetTags(ctx context.Context, h *api.HTTPAPI, assetID string, tags map[string]any) (asset.AssetSetTagsResponse, error) {
 	var response asset.AssetSetTagsResponse
 
@@ -105,6 +126,9 @@ type GetAssetsOpts struct {
 }
 
 // GetAssetAttacks retrieves attack executions for a specific asset
+//
+// Required permission: assets.read.
+// Required feature: endpoint.
 func GetAssetAttacks(ctx context.Context, h *api.HTTPAPI, assetID string, opts GetAssetAttacksOpts) (models.ListWithCount[any], error) {
 	var attacks models.ListWithCount[any]
 
@@ -124,6 +148,9 @@ func GetAssetAttacks(ctx context.Context, h *api.HTTPAPI, assetID string, opts G
 }
 
 // GetAssetExecutions retrieves execution reports for a specific asset
+//
+// Required permission: assets.read.
+// Required feature: endpoint.
 func GetAssetExecutions(ctx context.Context, h *api.HTTPAPI, assetID string, opts GetAssetExecutionsOpts) (models.ListWithCount[any], error) {
 	var executions models.ListWithCount[any]
 
@@ -143,6 +170,9 @@ func GetAssetExecutions(ctx context.Context, h *api.HTTPAPI, assetID string, opt
 }
 
 // GetAssetPacks retrieves assessment reports for a specific asset
+//
+// Required permission: assets.read.
+// Required feature: endpoint.
 func GetAssetPacks(ctx context.Context, h *api.HTTPAPI, assetID string, opts GetAssetExecutionsOpts) ([]models.PackRun, error) {
 	var packs []models.PackRun
 
@@ -162,6 +192,9 @@ func GetAssetPacks(ctx context.Context, h *api.HTTPAPI, assetID string, opts Get
 }
 
 // GetEmailAssets retrieves all email assets from the API
+//
+// Required permission: assets.email.read.
+// Required feature: email.
 func GetEmailAssets(ctx context.Context, h *api.HTTPAPI) ([]asset.EmailAsset, error) {
 	var assets []asset.EmailAsset
 
@@ -170,6 +203,9 @@ func GetEmailAssets(ctx context.Context, h *api.HTTPAPI) ([]asset.EmailAsset, er
 }
 
 // GetEmailAsset retrieves a specific email asset by ID
+//
+// Required permission: assets.email.read.
+// Required feature: email.
 func GetEmailAsset(ctx context.Context, h *api.HTTPAPI, assetID string) (asset.EmailAsset, error) {
 	var assetData asset.EmailAsset
 
@@ -178,6 +214,9 @@ func GetEmailAsset(ctx context.Context, h *api.HTTPAPI, assetID string) (asset.E
 }
 
 // CreateEmailAsset creates a new email asset
+//
+// Required permission: assets.email.create.
+// Required feature: email.
 func CreateEmailAsset(ctx context.Context, h *api.HTTPAPI, email string, tags map[string]string) (asset.EmailAsset, error) {
 	var assetData asset.EmailAsset
 
@@ -191,6 +230,9 @@ func CreateEmailAsset(ctx context.Context, h *api.HTTPAPI, email string, tags ma
 }
 
 // UpdateEmailAsset updates an existing email asset
+//
+// Required permission: assets.email.update.
+// Required feature: email.
 func UpdateEmailAsset(ctx context.Context, h *api.HTTPAPI, assetID string, email string, tags map[string]string) (models.SuccessIDResponse, error) {
 	var response models.SuccessIDResponse
 
@@ -205,6 +247,9 @@ func UpdateEmailAsset(ctx context.Context, h *api.HTTPAPI, assetID string, email
 }
 
 // DeleteEmailAsset deletes an email asset by ID
+//
+// Required permission: assets.email.delete.
+// Required feature: email.
 func DeleteEmailAsset(ctx context.Context, h *api.HTTPAPI, assetID string) (models.SuccessIDResponse, error) {
 	var response models.SuccessIDResponse
 
@@ -214,6 +259,9 @@ func DeleteEmailAsset(ctx context.Context, h *api.HTTPAPI, assetID string) (mode
 }
 
 // VerifyEmailAsset sends a verification email for an email asset
+//
+// Required permission: assets.email.verify.
+// Required feature: email.
 func VerifyEmailAsset(ctx context.Context, h *api.HTTPAPI, assetID string) (models.SuccessIDResponse, error) {
 	var response models.SuccessIDResponse
 
@@ -223,6 +271,9 @@ func VerifyEmailAsset(ctx context.Context, h *api.HTTPAPI, assetID string) (mode
 }
 
 // GetEmailAssetAnalytics retrieves analytics data for an email asset
+//
+// Required permission: assets.email.read.
+// Required feature: email.
 func GetEmailAssetAnalytics(ctx context.Context, h *api.HTTPAPI, assetID string, days int) (asset.EmailAssetAnalytics, error) {
 	var analytics asset.EmailAssetAnalytics
 
@@ -236,6 +287,9 @@ func GetEmailAssetAnalytics(ctx context.Context, h *api.HTTPAPI, assetID string,
 }
 
 // GetGmailConfirmationCode retrieves the Gmail confirmation code for an email asset
+//
+// Required permission: assets.email.read.
+// Required feature: email.
 func GetGmailConfirmationCode(ctx context.Context, h *api.HTTPAPI, assetID string) (asset.GmailConfCode, error) {
 	var confCode asset.GmailConfCode
 
@@ -244,6 +298,10 @@ func GetGmailConfirmationCode(ctx context.Context, h *api.HTTPAPI, assetID strin
 	return confCode, err
 }
 
+// GetFilteredAssets retrieves assets and filters them by connection and availability.
+//
+// Required permission: assets.read.
+// Required feature: endpoint.
 func GetFilteredAssets(ctx context.Context, h *api.HTTPAPI, opts GetAssetsOpts) ([]asset.Asset, error) {
 	assets, err := GetAssets(ctx, h)
 	if err != nil {

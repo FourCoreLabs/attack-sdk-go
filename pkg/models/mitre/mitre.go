@@ -32,6 +32,9 @@ type CoverageSummary struct {
 
 type CoverageExpanded MitreTacticTechniqueWithActionAndStagers
 
+// Summary formats the existing MITRE coverage data for summary output.
+//
+// Required permission: none (local operation).
 func (m CoverageExpanded) Summary() (any, error) {
 	successRate := "0%"
 	detectionRate := "0%"

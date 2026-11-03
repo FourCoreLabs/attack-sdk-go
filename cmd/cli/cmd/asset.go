@@ -19,6 +19,9 @@ type assetViewItem struct {
 	asset asset.Asset
 }
 
+// Transform converts the existing endpoint asset into its expanded view model.
+//
+// Required permission: none (local operation).
 func (i assetViewItem) Transform() (any, error) {
 	return asset.AssetExpanded(i.asset), nil
 }

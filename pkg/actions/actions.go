@@ -18,7 +18,10 @@ const EndpointActionsV2URI = "/api/v2/actions"
 // ListEndpointActionsV2URI is the base endpoint for listing endpoint actions
 const ListEndpointActionsV2URI = "/api/v2/content/actions"
 
-// ExecuteEndpointChain executes an endpoint attack chain by chain ID on specified assets
+// ExecuteEndpointAction executes endpoint actions and stagers on specified assets.
+//
+// Required permission: actions.execute.
+// Required feature: endpoint. Requires execution_enabled=true.
 func ExecuteEndpointAction(ctx context.Context, h *api.HTTPAPI, attackRun models.AttackRunActionsStagers) (models.GetExecutionResponse, error) {
 	var response models.GetExecutionResponse
 
@@ -43,6 +46,9 @@ type ListEndpointActionOpts struct {
 	Type             string            `json:"type,omitempty"`
 }
 
+// ListEndpointActions lists endpoint actions with the given options.
+//
+// Required permission: actions.read.
 func ListEndpointActions(ctx context.Context, h *api.HTTPAPI, opts ListEndpointActionOpts) (models.PaginationResponse[modelActions.ActionForUserState], error) {
 	var resp models.PaginationResponse[modelActions.ActionForUserState]
 

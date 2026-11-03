@@ -12,6 +12,8 @@ import (
 const MitreV2URI = "/api/v2/mitre"
 
 // GetAllMitreCoverage retrieves complete MITRE ATT&CK coverage information for the user
+//
+// Required permission: mitre.read.
 func GetAllMitreCoverage(ctx context.Context, h *api.HTTPAPI, days int) ([]mitre.MitreTacticTechniqueWithActionAndStagers, error) {
 	var resp []mitre.MitreTacticTechniqueWithActionAndStagers
 
@@ -28,6 +30,8 @@ func GetAllMitreCoverage(ctx context.Context, h *api.HTTPAPI, days int) ([]mitre
 }
 
 // GetMitreTechnique retrieves MITRE ATT&CK technique information based on technique_id
+//
+// Required permission: mitre.read.
 func GetMitreTechnique(ctx context.Context, h *api.HTTPAPI, techniqueID string, days int) (mitre.MitreTacticTechniqueWithActionAndStagers, error) {
 	var resp mitre.MitreTacticTechniqueWithActionAndStagers
 

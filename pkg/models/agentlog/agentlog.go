@@ -28,6 +28,9 @@ type AgentLogSummary struct {
 
 type AgentLogExpanded AgentLog
 
+// Summary formats the agent log's existing data for summary output.
+//
+// Required permission: none (local operation).
 func (a AgentLogExpanded) Summary() (any, error) {
 	timeStr := "N/A"
 	if a.CreatedAt != nil {

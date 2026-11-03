@@ -72,6 +72,9 @@ type ChainSummary struct {
 
 type ChainExpanded ChainForUserState
 
+// Summary formats the chain's existing data for summary output.
+//
+// Required permission: none (local operation).
 func (c ChainExpanded) Summary() (any, error) {
 	blockedRate := "0%"
 	successRate := "0%"

@@ -196,6 +196,9 @@ type AssetSummary struct {
 
 type AssetExpanded Asset
 
+// Summary formats the endpoint asset's existing data for summary output.
+//
+// Required permission: none (local operation).
 func (a AssetExpanded) Summary() (any, error) {
 	hostname := "N/A"
 	ipAddr := "N/A"
@@ -227,6 +230,9 @@ type EmailAssetSummary struct {
 
 type EmailAssetExpanded EmailAsset
 
+// Summary formats the email asset's existing data for summary output.
+//
+// Required permission: none (local operation).
 func (a EmailAssetExpanded) Summary() (any, error) {
 	return EmailAssetSummary{
 		ID:        a.ID,

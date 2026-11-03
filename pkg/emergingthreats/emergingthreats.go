@@ -99,6 +99,9 @@ type GetAttackOpts struct {
 
 // CreateAttack creates a standalone entry. Object entries reference a tenant:// URI
 // returned by tenantstore.UploadFile, not raw bytes or a bare tenant file ID.
+//
+// Required permission: useremergingthreats.create.
+// Required feature: user_emerging_threats.
 func CreateAttack(ctx context.Context, h *api.HTTPAPI, request model.AttackInput) (model.Attack, error) {
 	var result model.Attack
 	_, err := h.PostJSON(ctx, AttacksV2URI, request, &result)
@@ -109,6 +112,9 @@ func CreateAttack(ctx context.Context, h *api.HTTPAPI, request model.AttackInput
 }
 
 // UpdateAttack replaces a standalone entry using the supplied document and cleanup policy.
+//
+// Required permission: useremergingthreats.update.
+// Required feature: user_emerging_threats.
 func UpdateAttack(ctx context.Context, h *api.HTTPAPI, id string, request model.AttackUpdateRequest) (model.Attack, error) {
 	endpoint, err := attackEndpoint(id)
 	if err != nil {
@@ -123,6 +129,9 @@ func UpdateAttack(ctx context.Context, h *api.HTTPAPI, id string, request model.
 }
 
 // DeleteAttack deletes a standalone entry. A nil request uses the server's cleanup default.
+//
+// Required permission: useremergingthreats.delete.
+// Required feature: user_emerging_threats.
 func DeleteAttack(ctx context.Context, h *api.HTTPAPI, id string, request *model.AttackDeleteRequest) (models.SuccessIDResponse, error) {
 	endpoint, err := attackEndpoint(id)
 	if err != nil {
@@ -142,6 +151,9 @@ func DeleteAttack(ctx context.Context, h *api.HTTPAPI, id string, request *model
 }
 
 // ListAttacks lists standalone entries with matching content and latest behavior analytics.
+//
+// Required permission: useremergingthreats.read.
+// Required feature: user_emerging_threats.
 func ListAttacks(ctx context.Context, h *api.HTTPAPI, opts ListAttacksOpts) (models.PaginationResponse[model.Attack], error) {
 	var result models.PaginationResponse[model.Attack]
 	if opts.Size < 0 || opts.Offset < 0 {
@@ -168,6 +180,9 @@ func ListAttacks(ctx context.Context, h *api.HTTPAPI, opts ListAttacksOpts) (mod
 }
 
 // GetAttack retrieves one standalone entry and its latest analytics.
+//
+// Required permission: useremergingthreats.read.
+// Required feature: user_emerging_threats.
 func GetAttack(ctx context.Context, h *api.HTTPAPI, id string, opts GetAttackOpts) (model.Attack, error) {
 	endpoint, err := attackEndpoint(id)
 	if err != nil {
@@ -186,6 +201,9 @@ func GetAttack(ctx context.Context, h *api.HTTPAPI, id string, opts GetAttackOpt
 }
 
 // GetAttackFilters retrieves standalone entry filter dropdown values.
+//
+// Required permission: useremergingthreats.read.
+// Required feature: user_emerging_threats.
 func GetAttackFilters(ctx context.Context, h *api.HTTPAPI, filter AttackFilter) (model.AttackFilters, error) {
 	var result model.AttackFilters
 	_, err := h.GetJSON(ctx, AttacksV2URI+"/filters", &result, api.ReqOptions{Params: attackFilterParams(filter)})
@@ -197,6 +215,9 @@ func GetAttackFilters(ctx context.Context, h *api.HTTPAPI, filter AttackFilter) 
 
 // RunAttacks executes saved entries on endpoint and email assets. It returns one
 // run per executed entry.
+//
+// Required permission: useremergingthreats.execute.
+// Required feature: user_emerging_threats. Requires execution_enabled=true.
 func RunAttacks(ctx context.Context, h *api.HTTPAPI, request model.RunAttackRequest) ([]model.AttackRun, error) {
 	if err := validateIDs(request.AttackPayloads, "attack payload ID"); err != nil {
 		return nil, err
@@ -214,6 +235,9 @@ func RunAttacks(ctx context.Context, h *api.HTTPAPI, request model.RunAttackRequ
 
 // RunAttack executes only the entry named by id. Any AttackPayloads set on the
 // request are ignored: the path identity decides what runs.
+//
+// Required permission: useremergingthreats.execute.
+// Required feature: user_emerging_threats. Requires execution_enabled=true.
 func RunAttack(ctx context.Context, h *api.HTTPAPI, id string, request model.RunAttackRequest) ([]model.AttackRun, error) {
 	endpoint, err := executeAttackEndpoint(id)
 	if err != nil {
@@ -234,6 +258,9 @@ func RunAttack(ctx context.Context, h *api.HTTPAPI, id string, request model.Run
 // RunCampaigns executes saved campaigns on endpoint and email assets. It returns
 // one run per executed campaign. An empty result means every campaign had no
 // entries to run.
+//
+// Required permission: useremergingthreats.execute.
+// Required feature: user_emerging_threats. Requires execution_enabled=true.
 func RunCampaigns(ctx context.Context, h *api.HTTPAPI, request model.RunCampaignRequest) ([]model.CampaignRun, error) {
 	if err := validateIDs(request.Campaigns, "campaign ID"); err != nil {
 		return nil, err
@@ -251,6 +278,9 @@ func RunCampaigns(ctx context.Context, h *api.HTTPAPI, request model.RunCampaign
 
 // CreateCampaign creates a campaign. Object entries reference a tenant:// URI
 // returned by tenantstore.UploadFile, not raw bytes or a bare tenant file ID.
+//
+// Required permission: useremergingthreats.create.
+// Required feature: user_emerging_threats.
 func CreateCampaign(ctx context.Context, h *api.HTTPAPI, request model.CampaignCreateRequest) (model.Campaign, error) {
 	var result model.Campaign
 	_, err := h.PostJSON(ctx, CampaignsV2URI, request, &result)
@@ -261,6 +291,9 @@ func CreateCampaign(ctx context.Context, h *api.HTTPAPI, request model.CampaignC
 }
 
 // UpdateCampaign replaces a campaign using the supplied document and cleanup policy.
+//
+// Required permission: useremergingthreats.update.
+// Required feature: user_emerging_threats.
 func UpdateCampaign(ctx context.Context, h *api.HTTPAPI, id string, request model.CampaignUpdateRequest) (model.Campaign, error) {
 	endpoint, err := campaignEndpoint(id)
 	if err != nil {
@@ -275,6 +308,9 @@ func UpdateCampaign(ctx context.Context, h *api.HTTPAPI, id string, request mode
 }
 
 // DeleteCampaign deletes a campaign. A nil request uses the server's cleanup default.
+//
+// Required permission: useremergingthreats.delete.
+// Required feature: user_emerging_threats.
 func DeleteCampaign(ctx context.Context, h *api.HTTPAPI, id string, request *model.CampaignDeleteRequest) (models.SuccessIDResponse, error) {
 	endpoint, err := campaignEndpoint(id)
 	if err != nil {
@@ -294,6 +330,9 @@ func DeleteCampaign(ctx context.Context, h *api.HTTPAPI, id string, request *mod
 }
 
 // ListCampaigns lists campaigns with matching content and latest behavior analytics.
+//
+// Required permission: useremergingthreats.read.
+// Required feature: user_emerging_threats.
 func ListCampaigns(ctx context.Context, h *api.HTTPAPI, opts ListCampaignsOpts) (models.PaginationResponse[model.Campaign], error) {
 	var result models.PaginationResponse[model.Campaign]
 	if opts.Size < 0 || opts.Offset < 0 {
@@ -320,6 +359,9 @@ func ListCampaigns(ctx context.Context, h *api.HTTPAPI, opts ListCampaignsOpts) 
 }
 
 // GetCampaign retrieves one campaign and its latest analytics.
+//
+// Required permission: useremergingthreats.read.
+// Required feature: user_emerging_threats.
 func GetCampaign(ctx context.Context, h *api.HTTPAPI, id string, opts GetCampaignOpts) (model.Campaign, error) {
 	endpoint, err := campaignEndpoint(id)
 	if err != nil {
@@ -338,6 +380,9 @@ func GetCampaign(ctx context.Context, h *api.HTTPAPI, id string, opts GetCampaig
 }
 
 // GetCampaignFilters retrieves filter dropdown values constrained by content filters.
+//
+// Required permission: useremergingthreats.read.
+// Required feature: user_emerging_threats.
 func GetCampaignFilters(ctx context.Context, h *api.HTTPAPI, filter CampaignFilter) (model.CampaignFilters, error) {
 	var result model.CampaignFilters
 	_, err := h.GetJSON(ctx, CampaignsV2URI+"/filters", &result, api.ReqOptions{Params: campaignFilterParams(filter)})

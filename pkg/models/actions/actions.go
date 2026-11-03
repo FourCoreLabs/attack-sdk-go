@@ -48,6 +48,9 @@ type ActionSummary struct {
 
 type ActionExpanded ActionForUserState
 
+// Summary formats the action's existing data for summary output.
+//
+// Required permission: none (local operation).
 func (a ActionExpanded) Summary() (any, error) {
 	releasedAt := "N/A"
 	if !a.ReleaseDate.IsZero() {

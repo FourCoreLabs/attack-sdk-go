@@ -18,6 +18,9 @@ type RendererOption struct {
 
 type RendererOptFunc func(*RendererOption)
 
+// SingleElemAndComposeOption enables single-element composed output.
+//
+// Required permission: none (local operation).
 func SingleElemAndComposeOption() RendererOptFunc {
 	return func(ro *RendererOption) {
 		ro.SingleElemAndCompose = true
@@ -25,9 +28,14 @@ func SingleElemAndComposeOption() RendererOptFunc {
 }
 
 type Renderer interface {
+	// Render writes the supplied items to w.
+	// Required permission: none for built-in renderers; custom implementations may require permissions.
 	Render(w io.Writer, items []any, opts ...RendererOptFunc) error
 }
 
+// BuildRecords converts items into records with a shared set of column headers.
+//
+// Required permission: none (local operation).
 func BuildRecords(items []any) ([]string, []map[string]any, error) {
 	headers := make([]string, 0)
 	seen := make(map[string]struct{})
@@ -53,6 +61,9 @@ func BuildRecords(items []any) ([]string, []map[string]any, error) {
 	return headers, records, nil
 }
 
+// RecordItem converts an item into column headers and a record of cell values.
+//
+// Required permission: none (local operation).
 func RecordItem(item any) ([]string, map[string]any, error) {
 	if item == nil {
 		return []string{"value"}, map[string]any{"value": nil}, nil
@@ -134,6 +145,9 @@ func fieldHeader(field reflect.StructField) (string, bool) {
 	return name, true
 }
 
+// StringifyCell formats a cell value for text output.
+//
+// Required permission: none (local operation).
 func StringifyCell(value any) string {
 	if value == nil {
 		return ""

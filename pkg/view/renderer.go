@@ -20,6 +20,9 @@ type ViewRender struct {
 
 type ViewRenderOpt func(*ViewRender) error
 
+// NewViewRender creates a renderer registry, using built-in renderers by default.
+//
+// Required permission: none (local operation; custom options may require permissions).
 func NewViewRender(opts ...ViewRenderOpt) (*ViewRender, error) {
 	vr := &ViewRender{
 		renderers: make(map[Format]RendererFactory),
@@ -47,6 +50,9 @@ func NewViewRender(opts ...ViewRenderOpt) (*ViewRender, error) {
 	return vr, nil
 }
 
+// RegisterRenderer registers a renderer factory for the given format.
+//
+// Required permission: none (local operation).
 func (r *ViewRender) RegisterRenderer(format Format, factory RendererFactory) error {
 	if format == "" {
 		return fmt.Errorf("format cannot be empty")
@@ -61,6 +67,9 @@ func (r *ViewRender) RegisterRenderer(format Format, factory RendererFactory) er
 	return nil
 }
 
+// Render writes items using the renderer registered for the given format.
+//
+// Required permission: none for built-in renderers; custom renderers may require permissions.
 func (r *ViewRender) Render(format Format, w io.Writer, items []any, opts ...renderers.RendererOptFunc) error {
 	renderer, err := r.GetRenderer(format)
 	if err != nil {
@@ -70,6 +79,9 @@ func (r *ViewRender) Render(format Format, w io.Writer, items []any, opts ...ren
 	return renderer.Render(w, items, opts...)
 }
 
+// GetRenderer creates a renderer using the factory registered for the given format.
+//
+// Required permission: none for built-in factories; custom factories may require permissions.
 func (r *ViewRender) GetRenderer(format Format) (renderers.Renderer, error) {
 	r.mu.RLock()
 	factory, ok := r.renderers[format]
@@ -81,18 +93,27 @@ func (r *ViewRender) GetRenderer(format Format) (renderers.Renderer, error) {
 	return factory(), nil
 }
 
+// WithJsonRender registers the built-in JSON renderer.
+//
+// Required permission: none (local operation).
 func WithJsonRender() ViewRenderOpt {
 	return func(vr *ViewRender) error {
 		return vr.RegisterRenderer(FormatJSON, json.NewJsonRender)
 	}
 }
 
+// WithTableRender registers the built-in table renderer.
+//
+// Required permission: none (local operation).
 func WithTableRender() ViewRenderOpt {
 	return func(vr *ViewRender) error {
 		return vr.RegisterRenderer(FormatTable, table.NewTableRender)
 	}
 }
 
+// WithCsvRender registers the built-in CSV renderer.
+//
+// Required permission: none (local operation).
 func WithCsvRender() ViewRenderOpt {
 	return func(vr *ViewRender) error {
 		return vr.RegisterRenderer(FormatCSV, csv.NewCsvRender)
