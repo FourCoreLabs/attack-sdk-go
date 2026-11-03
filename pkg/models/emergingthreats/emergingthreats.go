@@ -85,6 +85,153 @@ type CampaignDeleteRequest struct {
 	DeleteTenantFileOnNoRelation *bool `json:"delete_tenant_file_on_no_relation,omitempty"`
 }
 
+// AttackUpdateRequest replaces a standalone IOC entry and optionally removes an
+// orphaned tenant file. The embedded fields form the replacement document.
+type AttackUpdateRequest struct {
+	AttackInput
+	DeleteTenantFileOnNoRelation bool `json:"delete_tenant_file_on_no_relation"`
+}
+
+// AttackDeleteRequest controls file cleanup when deleting a standalone entry.
+// Nil means use the server default; a pointer to false explicitly retains files.
+type AttackDeleteRequest struct {
+	DeleteTenantFileOnNoRelation *bool `json:"delete_tenant_file_on_no_relation,omitempty"`
+}
+
+// AttackFilters contains available values for standalone entry filter dropdowns.
+// Unlike campaign filters these are plain values, not counted dropdowns.
+type AttackFilters struct {
+	PayloadType         []string `json:"payload_type"`
+	Family              []string `json:"family"`
+	Category            []string `json:"category"`
+	HostingOrganisation []string `json:"hosting_organisation"`
+	DomainName          []string `json:"domain_name"`
+	FileType            []string `json:"file_type"`
+}
+
+// BehaviourOpts selects the delivery behaviors an execution may use. Entry type
+// decides applicability: object entries use the download/attachment behaviors,
+// host entries use the URL-request behaviors.
+type BehaviourOpts struct {
+	// Object entries.
+	WebProxyMalwareDownload bool `json:"web_proxy_malware_download,omitempty"`
+	MalwareDiskDownload     bool `json:"malware_disk_download,omitempty"`
+	EmailLinkInBody         bool `json:"email_link_in_body,omitempty"`
+	EmailAttachment         bool `json:"email_attachment,omitempty"`
+	// Host entries.
+	WebProxyURLRequest    bool `json:"web_proxy_url_request,omitempty"`
+	EmailURLRequestInBody bool `json:"email_url_request_in_body,omitempty"`
+}
+
+// RunAttackRequest executes one or more saved entries on endpoint and email
+// assets. Provide at least one endpoint asset, email asset, or both.
+type RunAttackRequest struct {
+	AttackPayloads []string       `json:"attack_payloads,omitempty"`
+	Assets         []string       `json:"assets,omitempty"`
+	EmailAssets    []string       `json:"email_assets,omitempty"`
+	RunElevated    *bool          `json:"run_elevated,omitempty"`
+	DisableCleanup *bool          `json:"disable_cleanup,omitempty"`
+	Behaviours     *BehaviourOpts `json:"behaviours,omitempty"`
+}
+
+// RunCampaignRequest executes one or more saved campaigns on endpoint and email
+// assets. Provide at least one endpoint asset, email asset, or both.
+type RunCampaignRequest struct {
+	Campaigns      []string       `json:"campaigns,omitempty"`
+	Assets         []string       `json:"assets,omitempty"`
+	EmailAssets    []string       `json:"email_assets,omitempty"`
+	RunElevated    *bool          `json:"run_elevated,omitempty"`
+	DisableCleanup *bool          `json:"disable_cleanup,omitempty"`
+	Behaviours     *BehaviourOpts `json:"behaviours,omitempty"`
+}
+
+// AttackRun is one saved-entry execution and its current state. The server
+// returns one run per executed entry, so a bulk request may yield several.
+type AttackRun struct {
+	ID                     string                         `json:"id"`
+	AttackPayloadID        string                         `json:"attack_payload_id"`
+	EmergingThreatAttackID string                         `json:"emerging_threat_attack_id"`
+	Name                   string                         `json:"name"`
+	Description            string                         `json:"description"`
+	ExecutionType          []string                       `json:"execution_type"`
+	UserID                 uint                           `json:"user_id"`
+	OrgID                  uint                           `json:"org_id"`
+	Username               string                         `json:"username,omitempty"`
+	OrgName                string                         `json:"org_name,omitempty"`
+	AssetIDs               []string                       `json:"asset_id"`
+	EmailAssetIDs          []string                       `json:"email_asset_id"`
+	Assets                 []models.AssetExecutionDetails `json:"assets"`
+	Status                 string                         `json:"status"`
+	StatusState            string                         `json:"status_state"`
+	TotalFinished          int                            `json:"total_finished"`
+	TotalAttacks           int                            `json:"total_attacks"`
+	TotalSuccess           int                            `json:"total_success"`
+	TotalDetected          int                            `json:"total_detected"`
+	Hostname               []models.Hostname              `json:"hostname"`
+	AssetEDRs              []string                       `json:"asset_edrs"`
+	AssetIntegrations      []string                       `json:"asset_integrations"`
+	Host                   string                         `json:"host"`
+	IsRecurring            bool                           `json:"is_recurring"`
+	Type                   string                         `json:"type"`
+	Tags                   models.Tag                     `json:"tags"`
+	Deprecated             bool                           `json:"deprecated"`
+	CreatedAt              *time.Time                     `json:"created_at,omitempty"`
+	UpdatedAt              *time.Time                     `json:"updated_at,omitempty"`
+}
+
+// RunVectorAnalytics counts an execution's per-vector behavior totals.
+type RunVectorAnalytics struct {
+	WebProxyMalwareDownload int `json:"web_proxy_malware_download"`
+	MalwareDiskDownload     int `json:"malware_disk_download"`
+	EmailLinkInBody         int `json:"email_link_in_body"`
+	EmailAttachment         int `json:"email_attachment"`
+	WebProxyURLRequest      int `json:"web_proxy_url_request"`
+	EmailURLRequestInBody   int `json:"email_url_request_in_body"`
+}
+
+// RunOpts echoes the execution options a campaign run used.
+type RunOpts struct {
+	EmergingThreatCampaignOpt map[string]any `json:"emerging_threat_campaign_opt,omitempty"`
+	AttackPayloadOpt          map[string]any `json:"attack_payload_opt,omitempty"`
+}
+
+// CampaignRun is one saved-campaign execution and its current state. Its
+// attack_payload_executions lists the per-entry runs the campaign produced.
+type CampaignRun struct {
+	ID                      string                         `json:"id"`
+	CampaignID              string                         `json:"campaign_id"`
+	Name                    string                         `json:"name"`
+	Description             string                         `json:"description"`
+	Reference               []string                       `json:"reference"`
+	Tags                    models.Tag                     `json:"tags"`
+	UserID                  uint                           `json:"user_id"`
+	OrgID                   uint                           `json:"org_id"`
+	Username                string                         `json:"username,omitempty"`
+	OrgName                 string                         `json:"org_name,omitempty"`
+	AssetIDs                []string                       `json:"asset_id"`
+	EmailAssetIDs           []string                       `json:"email_asset_id"`
+	Assets                  []models.AssetExecutionDetails `json:"assets"`
+	Status                  string                         `json:"status"`
+	StatusState             string                         `json:"status_state"`
+	TotalFinished           int                            `json:"total_finished"`
+	TotalAttacks            int                            `json:"total_attacks"`
+	TotalSuccess            int                            `json:"total_success"`
+	TotalDetected           int                            `json:"total_detected"`
+	Hostname                []models.Hostname              `json:"hostname"`
+	TotalHosts              int                            `json:"total_hosts"`
+	TotalMalwares           int                            `json:"total_malwares"`
+	AssetEDRs               []string                       `json:"asset_edrs"`
+	AssetIntegrations       []string                       `json:"asset_integrations"`
+	AttackPayloadExecutions []AttackRun                    `json:"attack_payload_executions"`
+	VectorAnalytics         RunVectorAnalytics             `json:"vector_analytics"`
+	RunOpts                 RunOpts                        `json:"run_opts"`
+	ReportCategory          string                         `json:"report_category"`
+	IsRecurring             bool                           `json:"is_recurring"`
+	Deprecated              bool                           `json:"deprecated"`
+	CreatedAt               *time.Time                     `json:"created_at,omitempty"`
+	UpdatedAt               *time.Time                     `json:"updated_at,omitempty"`
+}
+
 // CountAnalytics summarizes the latest outcome of a simulation behavior.
 type CountAnalytics struct {
 	Count    int `json:"count"`
