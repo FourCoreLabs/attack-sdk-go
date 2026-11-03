@@ -1,6 +1,7 @@
 package emergingthreats
 
 import (
+	"context"
 	"encoding/json/v2"
 	"errors"
 	"io"
@@ -13,6 +14,7 @@ import (
 	"time"
 
 	"github.com/fourcorelabs/attack-sdk-go/pkg/api"
+	"github.com/fourcorelabs/attack-sdk-go/pkg/executions"
 	model "github.com/fourcorelabs/attack-sdk-go/pkg/models/emergingthreats"
 )
 
@@ -33,6 +35,348 @@ func campaignJSON(t *testing.T, w http.ResponseWriter, status int, body string) 
 	w.WriteHeader(status)
 	if _, err := io.WriteString(w, body); err != nil {
 		t.Errorf("write campaign response = %v, want nil", err)
+	}
+}
+
+func TestV2CatalogReportAndExecutionRoutes(t *testing.T) {
+	attackRun := model.RunAttackRequest{AttackPayloads: []string{"threat-id"}, Assets: []string{"asset-id"}}
+	campaignRun := model.RunCampaignRequest{Campaigns: []string{"campaign-id"}, Assets: []string{"asset-id"}}
+	tests := []struct {
+		name, method, path, body string
+		call                     func(*api.HTTPAPI) error
+	}{
+		{"catalog list", "GET", "/api/v2/content/emerging_threat", `{"data":[],"total_rows":0}`, func(h *api.HTTPAPI) error {
+			_, err := ListCatalogThreats(t.Context(), h, ListCatalogThreatsOpts{})
+			return err
+		}},
+		{"catalog detail", "GET", "/api/v2/content/emerging_threat/threat-id", `{}`, func(h *api.HTTPAPI) error {
+			_, err := GetCatalogThreat(t.Context(), h, "threat-id", AnalyticsOpts{})
+			return err
+		}},
+		{"catalog filters", "GET", "/api/v2/content/emerging_threat/filters", `{}`, func(h *api.HTTPAPI) error { _, err := GetCatalogFilters(t.Context(), h, CatalogFilter{}); return err }},
+		{"catalog groups", "GET", "/api/v2/content/emerging_threat/group/family", `{"data":[],"total_rows":0}`, func(h *api.HTTPAPI) error {
+			_, err := ListCatalogGroups(t.Context(), h, GroupByFamily, ListCatalogThreatsOpts{})
+			return err
+		}},
+		{"malware categories", "GET", "/api/v2/content/emerging_threat/malware_category", `{"data":[],"total_rows":0}`, func(h *api.HTTPAPI) error {
+			_, err := ListMalwareCategories(t.Context(), h, ListMalwareCategoriesOpts{})
+			return err
+		}},
+		{"overview", "GET", "/api/v2/content/emerging_threat/overview/analytics", `{}`, func(h *api.HTTPAPI) error { _, err := GetOverviewAnalytics(t.Context(), h, OverviewOpts{}); return err }},
+		{"payload overview", "GET", "/api/v2/content/emerging_threat/overview/payload_analytics", `{}`, func(h *api.HTTPAPI) error {
+			_, err := GetOverviewPayloadAnalytics(t.Context(), h, OverviewOpts{})
+			return err
+		}},
+		{"vector overview", "GET", "/api/v2/content/emerging_threat/overview/vector_analytics", `{}`, func(h *api.HTTPAPI) error {
+			_, err := GetOverviewVectorAnalytics(t.Context(), h, OverviewOpts{})
+			return err
+		}},
+		{"catalog campaigns", "GET", "/api/v2/content/emerging_threat_campaigns", `{"data":[],"total_rows":0}`, func(h *api.HTTPAPI) error {
+			_, err := ListCatalogCampaigns(t.Context(), h, ListCatalogCampaignsOpts{})
+			return err
+		}},
+		{"catalog campaign", "GET", "/api/v2/content/emerging_threat_campaigns/campaign-id", `{}`, func(h *api.HTTPAPI) error {
+			_, err := GetCatalogCampaign(t.Context(), h, "campaign-id", AnalyticsOpts{})
+			return err
+		}},
+		{"catalog campaign filters", "GET", "/api/v2/content/emerging_threat_campaigns/filters", `{}`, func(h *api.HTTPAPI) error {
+			_, err := GetCatalogCampaignFilters(t.Context(), h, CatalogCampaignFilter{})
+			return err
+		}},
+		{"catalog indicators", "GET", "/api/v2/content/emerging_threat_campaigns/campaign-id/indicators", `{}`, func(h *api.HTTPAPI) error {
+			_, err := GetCatalogCampaignIndicators(t.Context(), h, "campaign-id")
+			return err
+		}},
+		{"reports", "GET", "/api/v2/emerging_threat/reports", `{"data":[],"total_rows":0}`, func(h *api.HTTPAPI) error { _, err := ListReports(t.Context(), h, ListReportsOpts{}); return err }},
+		{"report", "GET", "/api/v2/emerging_threat/reports/run-id", `{}`, func(h *api.HTTPAPI) error { _, err := GetReport(t.Context(), h, "run-id"); return err }},
+		{"delete report", "DELETE", "/api/v2/emerging_threat/reports/run-id", `{"success":true,"id":"run-id"}`, func(h *api.HTTPAPI) error { _, err := DeleteReport(t.Context(), h, "run-id"); return err }},
+		{"campaign reports", "GET", "/api/v2/emerging_threat/campaign/reports", `{"data":[],"total_rows":0}`, func(h *api.HTTPAPI) error {
+			_, err := ListCampaignReports(t.Context(), h, ListCampaignReportsOpts{})
+			return err
+		}},
+		{"campaign report", "GET", "/api/v2/emerging_threat/campaign/reports/run-id", `{}`, func(h *api.HTTPAPI) error { _, err := GetCampaignReport(t.Context(), h, "run-id"); return err }},
+		{"delete campaign report", "DELETE", "/api/v2/emerging_threat/campaign/reports/run-id", `{"success":true,"id":"run-id"}`, func(h *api.HTTPAPI) error { _, err := DeleteCampaignReport(t.Context(), h, "run-id"); return err }},
+		{"run catalog threats", "POST", "/api/v2/emerging_threat/run", `[]`, func(h *api.HTTPAPI) error { _, err := RunCatalogThreats(t.Context(), h, attackRun); return err }},
+		{"run conditional threats", "POST", "/api/v2/emerging_threat/run/condition", `{}`, func(h *api.HTTPAPI) error {
+			_, err := RunConditionalCatalogThreats(t.Context(), h, model.RunConditionalRequest{RunAttackRequest: attackRun})
+			return err
+		}},
+		{"run catalog campaign", "POST", "/api/v2/emerging_threat/campaign/campaign-id/run", `{}`, func(h *api.HTTPAPI) error {
+			_, err := RunCatalogCampaign(t.Context(), h, "campaign-id", campaignRun)
+			return err
+		}},
+		{"run catalog campaigns", "POST", "/api/v2/emerging_threat/campaign/run", `[]`, func(h *api.HTTPAPI) error { _, err := RunCatalogCampaigns(t.Context(), h, campaignRun); return err }},
+		{"abort run", "POST", "/api/v2/emerging_threat/runs/run-id/abort", `{"success":true,"id":"run-id"}`, func(h *api.HTTPAPI) error { _, err := AbortRun(t.Context(), h, "run-id"); return err }},
+		{"abort campaign", "POST", "/api/v2/emerging_threat/campaign/reports/run-id/abort", `{"success":true,"id":"run-id"}`, func(h *api.HTTPAPI) error { _, err := AbortCampaignRun(t.Context(), h, "run-id"); return err }},
+		{"all executions", "GET", "/api/v2/executions/all", `{"data":[],"total_rows":0}`, func(h *api.HTTPAPI) error {
+			_, err := executions.ListAllExecutions(t.Context(), h, executions.ListAllExecutionsOpts{})
+			return err
+		}},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			h := campaignTestClient(t, func(w http.ResponseWriter, r *http.Request) {
+				if r.Method != test.method || r.URL.Path != test.path || r.Header.Get("Authorization") != "Bearer campaign-key" {
+					t.Errorf("got %s %s, want %s %s with API key", r.Method, r.URL.Path, test.method, test.path)
+				}
+				campaignJSON(t, w, 200, test.body)
+			})
+			if err := test.call(h); err != nil {
+				t.Fatal(err)
+			}
+		})
+	}
+	if AttacksV2URI != "/api/v2/emerging_threat/attack" || CampaignsV2URI != "/api/v2/emerging_threat/attack/campaigns" {
+		t.Fatal("authored threat routes do not match the renamed server routes")
+	}
+}
+
+func TestCatalogQueryAndDecode(t *testing.T) {
+	start := time.Date(2026, 11, 1, 0, 0, 0, 0, time.UTC)
+	h := campaignTestClient(t, func(w http.ResponseWriter, r *http.Request) {
+		want := map[string]string{
+			"size": "20", "offset": "2", "order": "-release_date,name",
+			"filter[family]": "alpha,beta", "filter[hosting]": "provider", "filter[domain]": "example.test",
+			"filter[show_deprecated]": "false", "filter[start_success_percent]": "0", "filter[end_success_percent]": "100",
+			"filter[use_link]": "false", "filter[use_attachment]": "true", "filter[execution_type]": "firewall,email_infiltration",
+			"start_drange": start.Format(time.RFC3339), "end_drange": start.Add(24 * time.Hour).Format(time.RFC3339),
+		}
+		for key, value := range want {
+			if r.URL.Query().Get(key) != value || len(r.URL.Query()[key]) != 1 {
+				t.Errorf("query %s = %v, want one %q", key, r.URL.Query()[key], value)
+			}
+		}
+		campaignJSON(t, w, 200, `{"total_rows":1,"size":20,"data":[{"id":"payload-id","text":"catalog description","type":"host","behaviour_analytics":{"web_proxy_url_request":{"count":1,"total":2,"success":1}}}]}`)
+	})
+	result, err := ListCatalogThreats(t.Context(), h, ListCatalogThreatsOpts{
+		Size: 20, Offset: 2, Order: "-release_date,name", Family: []string{"alpha", "beta"},
+		Hosting: []string{"provider"}, Domain: []string{"example.test"}, ShowDeprecated: new(false),
+		StartSuccessPercent: new(uint(0)), EndSuccessPercent: new(uint(100)),
+		StartDayRange: start, EndDayRange: start.Add(24 * time.Hour), UseLink: new(false), UseAttachment: new(true),
+		ExecutionType: []string{"firewall", "email_infiltration"},
+	})
+	if err != nil || result.TotalRows != 1 || len(result.Data) != 1 || result.Data[0].Description != "catalog description" || result.Data[0].BehaviourAnalytics.WebProxyURLRequest.Success != 1 {
+		t.Fatalf("catalog response = %+v, err = %v", result, err)
+	}
+}
+
+func TestCampaignCatalogFiltersAndOverview(t *testing.T) {
+	start := time.Date(2026, 11, 1, 0, 0, 0, 0, time.UTC)
+	h := campaignTestClient(t, func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path == CatalogCampaignsV2URI+"/filters" {
+			for key, want := range map[string]string{
+				"filter[industry]": "energy,finance", "filter[threat_actor]": "actor", "filter[hide_empty]": "false",
+				"filter[region]": "region:Europe", "filter[show_deprecated]": "true", "filter[hosting]": "provider",
+			} {
+				if r.URL.Query().Get(key) != want {
+					t.Errorf("%s = %q, want %q", key, r.URL.Query().Get(key), want)
+				}
+			}
+			campaignJSON(t, w, 200, `{"hosting_org":[{"count":2,"data":"provider"}],"region_country":[{"count":1,"data":"country:France"}]}`)
+			return
+		}
+		if r.URL.Query().Get("filter[start_timestamp]") != start.Format(time.RFC3339) || r.URL.Query().Get("filter[end_timestamp]") != start.Add(time.Hour).Format(time.RFC3339) {
+			t.Errorf("overview query = %v", r.URL.Query())
+		}
+		campaignJSON(t, w, 200, `{"analytics":[{"file_type":"exe","success_count":2}],"total_success_count":2}`)
+	})
+	filters, err := GetCatalogCampaignFilters(t.Context(), h, CatalogCampaignFilter{
+		Industry: []string{"energy", "finance"}, Region: []string{"region:Europe"}, ThreatActor: []string{"actor"},
+		HideEmpty: new(false), ShowDeprecated: new(true), Hosting: []string{"provider"},
+	})
+	if err != nil || len(filters.HostingOrg) != 1 || filters.HostingOrg[0].Count != 2 || len(filters.RegionCountry) != 1 {
+		t.Fatalf("filters=%+v, err=%v", filters, err)
+	}
+	overview, err := GetOverviewPayloadAnalytics(t.Context(), h, OverviewOpts{StartTimestamp: start, EndTimestamp: start.Add(time.Hour)})
+	if err != nil || overview.TotalSuccessCount != 2 || len(overview.Analytics) != 1 || overview.Analytics[0].FileType != "exe" {
+		t.Fatalf("overview=%+v, err=%v", overview, err)
+	}
+}
+
+func TestReportFiltersDetailsAndErrors(t *testing.T) {
+	h := campaignTestClient(t, func(w http.ResponseWriter, r *http.Request) {
+		switch r.URL.Path {
+		case CampaignReportsV2URI:
+			for key, want := range map[string]string{
+				"size": "5", "order": "-updated_at", "filter[name]": "report", "filter[user_id]": "2,3",
+				"filter[campaign_id]": "catalog,user-campaign", "filter[asset_id]": "asset-id", "filter[schedule_id]": "schedule-id",
+				"filter[group_campaign_run_id]": "group-id", "filter[behaviours]": "malicious_url_request", "d": "7",
+			} {
+				if r.URL.Query().Get(key) != want {
+					t.Errorf("%s=%q, want %q", key, r.URL.Query().Get(key), want)
+				}
+			}
+			campaignJSON(t, w, 200, `{"total_rows":1,"data":[{"id":"campaign-run","schedule_id":{"String":"schedule-id","Valid":true},"attack_payload_executions":[{"id":"run-id"}]}]}`)
+		case ReportsV2URI + "/gone":
+			campaignJSON(t, w, 410, `{"status":410,"title":"report deleted by user"}`)
+		default:
+			campaignJSON(t, w, 200, `{"id":"run-id","schedule_id":{"String":"schedule-id","Valid":true},"steps":[{"execution_id":"execution-id","success_assets":1,"use_link":true,"assets":[{"asset_id":"asset-id","status":"finished","total_success":1}]}]}`)
+		}
+	})
+	page, err := ListCampaignReports(t.Context(), h, ListCampaignReportsOpts{
+		Size: 5, Order: "-updated_at", Name: "report", UserIDs: []uint{2, 3}, CampaignIDs: []string{"catalog", "user-campaign"},
+		AssetIDs: []string{"asset-id"}, ScheduleIDs: []string{"schedule-id"}, GroupCampaignRunIDs: []string{"group-id"},
+		Behaviours: []string{"malicious_url_request"}, Days: new(uint(7)),
+	})
+	if err != nil || len(page.Data) != 1 || page.Data[0].AttackPayloadExecutions[0].ID != "run-id" || !page.Data[0].ScheduleID.Valid {
+		t.Fatalf("campaign reports=%+v, err=%v", page, err)
+	}
+	report, err := GetReport(t.Context(), h, "run-id")
+	if err != nil || len(report.Steps) != 1 || report.Steps[0].SuccessAssets != 1 || report.Steps[0].Assets[0].TotalSuccess != 1 {
+		t.Fatalf("report=%+v, err=%v", report, err)
+	}
+	_, err = GetReport(t.Context(), h, "gone")
+	problem, ok := errors.AsType[*api.APIError](err)
+	if !ok || problem.Status != 410 || problem.Title != "report deleted by user" {
+		t.Fatalf("gone error=%v", err)
+	}
+}
+
+func TestCombinedReportFiltersAndDecode(t *testing.T) {
+	h := campaignTestClient(t, func(w http.ResponseWriter, r *http.Request) {
+		for key, want := range map[string]string{
+			"filter[execution_group_type]": "emerging_threat,playbook", "filter[action_id]": "a,b",
+			"filter[user_id]": "1,2", "filter[use_attachment]": "false", "filter[start_blocked_percent]": "0", "size": "15",
+		} {
+			if r.URL.Query().Get(key) != want {
+				t.Errorf("%s = %q, want %q", key, r.URL.Query().Get(key), want)
+			}
+		}
+		campaignJSON(t, w, 200, `{"total_rows":1,"data":[{"run_id":"run-id","group_type":"emerging_threat","execution_type":["firewall"],"schedule_id":{"String":"schedule-id","Valid":true},"behaviour_analytics":{"behaviours":[{"id":"payload-id","use_link":true,"success":1}]}}]}`)
+	})
+	result, err := executions.ListAllExecutions(t.Context(), h, executions.ListAllExecutionsOpts{
+		Size: 15, ExecutionGroupTypes: []string{"emerging_threat", "playbook"}, ActionIDs: []string{"a", "b"},
+		UserIDs: []uint{1, 2}, UseAttachment: new(false), StartBlockedPercent: new(uint(0)),
+	})
+	if err != nil || result.TotalRows != 1 || len(result.Data) != 1 || result.Data[0].RunID != "run-id" || result.Data[0].ScheduleID.String != "schedule-id" || !result.Data[0].ScheduleID.Valid || len(result.Data[0].BehaviourAnalytics.Behaviours) != 1 {
+		t.Fatalf("combined reports = %+v, err = %v", result, err)
+	}
+}
+
+func TestConditionalExecutionBodyAndNoContentCampaign(t *testing.T) {
+	h := campaignTestClient(t, func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path == "/api/v2/emerging_threat/campaign/user/run" {
+			w.WriteHeader(http.StatusNoContent)
+			return
+		}
+		body, err := io.ReadAll(r.Body)
+		if err != nil {
+			t.Error(err)
+		}
+		var request struct {
+			Filters []struct {
+				Name  string   `json:"name"`
+				Value []string `json:"value"`
+			} `json:"filter_by"`
+		}
+		if err := json.Unmarshal(body, &request); err != nil || len(request.Filters) != 1 || request.Filters[0].Name != "family" || request.Filters[0].Value[0] != "alpha" {
+			t.Errorf("conditional body = %s, err=%v", body, err)
+		}
+		campaignJSON(t, w, 200, `{"id":"group-run"}`)
+	})
+	result, err := RunConditionalCatalogThreats(t.Context(), h, model.RunConditionalRequest{
+		Assets: []string{"asset-id"}, FilterBy: []model.Condition{{Name: "family", Value: []string{"alpha"}}},
+	})
+	if err != nil || result.ID != "group-run" {
+		t.Fatalf("conditional run = %+v, err=%v", result, err)
+	}
+	runs, err := RunCampaigns(t.Context(), h, model.RunCampaignRequest{Campaigns: []string{"empty"}, Assets: []string{"asset-id"}})
+	if err != nil || len(runs) != 0 {
+		t.Fatalf("empty campaign runs = %+v, err=%v", runs, err)
+	}
+}
+
+func TestWatchRunEventsAndClose(t *testing.T) {
+	h := campaignTestClient(t, func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/api/v2/emerging_threat/runs/run-id/sse" || r.Header.Get("Accept") != "text/event-stream" || r.Header.Get("Authorization") != "Bearer campaign-key" {
+			t.Errorf("unexpected SSE request %s %v", r.URL, r.Header)
+		}
+		w.Header().Set("Content-Type", "text/event-stream; charset=utf-8")
+		_, _ = io.WriteString(w, ": comment\r\nevent: retry\r\nretry: 1000\r\n\r\nid: 1\nevent: status-update\ndata: first\ndata: second\n\nevent: keep_alive\ndata: \n\nevent: close\ndata: execution complete\n\n")
+	})
+	var events []RunEvent
+	for event, err := range WatchRun(t.Context(), h, "run-id") {
+		if err != nil {
+			t.Fatal(err)
+		}
+		events = append(events, event)
+	}
+	if len(events) != 4 || events[0].Retry != time.Second || events[1].Data != "first\nsecond" || events[1].ID != "1" || events[3].Type != "close" {
+		t.Fatalf("events = %+v", events)
+	}
+}
+
+func TestWatchRunCancellationAndHTTPError(t *testing.T) {
+	t.Run("early break closes body", func(t *testing.T) {
+		done := make(chan struct{})
+		h := campaignTestClient(t, func(w http.ResponseWriter, r *http.Request) {
+			w.Header().Set("Content-Type", "text/event-stream")
+			_, _ = io.WriteString(w, "event: status-update\ndata: \n\n")
+			w.(http.Flusher).Flush()
+			<-r.Context().Done()
+			close(done)
+		})
+		for _, err := range WatchRun(t.Context(), h, "run-id") {
+			if err != nil {
+				t.Fatal(err)
+			}
+			break
+		}
+		select {
+		case <-done:
+		case <-time.After(5 * time.Second):
+			t.Fatal("stream body not closed")
+		}
+	})
+	t.Run("HTTP error", func(t *testing.T) {
+		h := campaignTestClient(t, func(w http.ResponseWriter, r *http.Request) {
+			campaignJSON(t, w, 403, `{"title":"forbidden","status":403}`)
+		})
+		for _, err := range WatchRun(t.Context(), h, "run-id") {
+			if !errors.Is(err, api.ErrApiKeyInvalid) {
+				t.Fatalf("error = %v", err)
+			}
+		}
+	})
+	t.Run("canceled context", func(t *testing.T) {
+		h := campaignTestClient(t, func(w http.ResponseWriter, r *http.Request) { t.Error("canceled request sent") })
+		ctx, cancel := context.WithCancel(t.Context())
+		cancel()
+		for _, err := range WatchRun(ctx, h, "run-id") {
+			if !errors.Is(err, context.Canceled) {
+				t.Fatalf("error = %v", err)
+			}
+		}
+	})
+}
+
+func TestNewAPILocalValidation(t *testing.T) {
+	h := campaignTestClient(t, func(w http.ResponseWriter, r *http.Request) { t.Error("invalid input sent a request") })
+	for _, id := range []string{"", ".", "..", "a/b", "id?filter=bad"} {
+		if _, err := GetReport(t.Context(), h, id); err == nil {
+			t.Errorf("accepted report ID %q", id)
+		}
+		if _, err := GetCatalogCampaign(t.Context(), h, id, AnalyticsOpts{}); err == nil {
+			t.Errorf("accepted campaign ID %q", id)
+		}
+	}
+	if _, err := ListCatalogGroups(t.Context(), h, "unsupported", ListCatalogThreatsOpts{}); err == nil {
+		t.Error("accepted invalid grouping")
+	}
+	if _, err := ListCatalogThreats(t.Context(), h, ListCatalogThreatsOpts{Size: -1}); err == nil {
+		t.Error("accepted negative page size")
+	}
+	if _, err := ListCatalogThreats(t.Context(), h, ListCatalogThreatsOpts{Order: "-"}); err == nil {
+		t.Error("accepted invalid sort")
+	}
+	if _, err := executions.ListAllExecutions(t.Context(), h, executions.ListAllExecutionsOpts{StartSuccessPercent: new(uint(101))}); err == nil {
+		t.Error("accepted percentage >100")
+	}
+	if _, err := RunCatalogThreats(t.Context(), h, model.RunAttackRequest{}); err == nil {
+		t.Error("accepted empty execution")
+	}
+	if _, err := GetOverviewAnalytics(t.Context(), h, OverviewOpts{StartDayRange: time.Now()}); err == nil {
+		t.Error("accepted incomplete date range")
 	}
 }
 

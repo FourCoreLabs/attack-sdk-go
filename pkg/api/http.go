@@ -258,6 +258,8 @@ func (g *HTTPAPI) reqBuf(ctx context.Context, method string, uri string, buf []b
 	}
 
 	switch statusCode {
+	case http.StatusNoContent:
+		return dest, nil
 	case http.StatusOK, http.StatusCreated:
 		if err := json.Unmarshal(body, dest); err != nil {
 			return nil, err
