@@ -410,6 +410,36 @@ type Attack struct {
 	UserID      int                    `json:"user_id,omitempty"`
 }
 
+// CreateAttackWizard is the request body for creating a saved attack
+type CreateAttackWizard struct {
+	Name                string                           `json:"name"`
+	Platform            string                           `json:"platform"`
+	Description         string                           `json:"description,omitempty"`
+	Tags                Tag                              `json:"tags,omitempty"`
+	Stager              []StagerInAttackWizard           `json:"stager,omitempty"`
+	MaliciousBehaviours MaliciousBehaviourInAttackWizard `json:"malicious_behaviours"`
+	Malware             MalwareInAttackWizard            `json:"malwares"`
+	Opts                AttackOpts                       `json:"opts"`
+}
+
+type StagerInAttackWizard struct {
+	StagerID string `json:"stager_id"`
+	Mode     string `json:"mode"`
+}
+
+type MaliciousBehaviourInAttackWizard struct {
+	MaliciousBehaviours []string `json:"malicious_behaviours"`
+}
+
+type MalwareInAttackWizard struct {
+	Malwares []string `json:"malwares"`
+}
+
+type AttackOpts struct {
+	RunElevated    bool `json:"run_elevated,omitempty"`
+	DisableCleanup bool `json:"disable_cleanup,omitempty"`
+}
+
 // StagerIDDetails represents stager ID details.
 type StagerIDDetails struct {
 	StagerID   string `json:"stager_id,omitempty"`
